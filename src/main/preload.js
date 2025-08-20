@@ -5,6 +5,24 @@ const { contextBridge, ipcRenderer } = require("electron");
 console.log("✅ Preload script loaded");
 
 contextBridge.exposeInMainWorld("api", {
+
+  // Window control functions
+  minimizeApp: () => {
+    try {
+      ipcRenderer.send('minimize-window');
+    } catch (e) {
+      console.error('Failed to minimize window:', e);
+    }
+  },
+  
+  closeApp: () => {
+    try {
+      ipcRenderer.send('close-window');
+    } catch (e) {
+      console.error('Failed to close window:', e);
+    }
+  },
+
   // Fetch usage data for each app
   getUsageData: async () => {
     try {
@@ -56,7 +74,7 @@ contextBridge.exposeInMainWorld("api", {
     try {
       return await ipcRenderer.invoke("get-usage-by-date", date);
     } catch (e) {
-      console.error("Failed to fetch usage by date:", e);
+      console.t('Failed to fetch usage by date:', e);
       return [];
     }
   },

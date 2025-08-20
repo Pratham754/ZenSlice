@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { ThemeProvider, createTheme, Box, Typography } from "@mui/material";
 import CssBaseline from "@mui/material/CssBaseline";
 import Dashboard from "./components/Dashboard";
 
@@ -32,7 +32,6 @@ const theme = createTheme({
 
 function App() {
   useEffect(() => {
-    // Load custom font
     const style = document.createElement("style");
     style.innerHTML = `
       @font-face {
@@ -45,11 +44,11 @@ function App() {
       
       body {
         font-family: 'Pineapple Grass', 'Montserrat', 'Poppins', sans-serif;
+        cursor: url('/cursors/cursor.png'), auto;
       }
     `;
     document.head.appendChild(style);
 
-    // Check if Electron API is available
     if (!window.api) {
       console.warn("Electron API not available - running in development mode");
     }
@@ -59,12 +58,66 @@ function App() {
     };
   }, []);
 
+  const handleReload = () => window.location.reload();
+  const handleMinimize = () => window.api?.minimizeApp();
+  const handleClose = () => window.api?.closeApp();
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <div className="App">
+      <Box 
+        className="App" 
+        sx={{ 
+          display: "flex", 
+          flexDirection: "column", 
+          minHeight: "100vh", 
+          backgroundColor: "#FFDDC4",
+        }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            width: "100%",
+            height: "40px",
+            backgroundColor: "#EBBC7C",
+            color: "#fff",
+            p: "0 16px",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+            WebkitAppRegion: "drag", // This makes the header draggable
+          }}
+        >
+          <Typography variant="h6" sx={{ color: "#5A4A42" }}>ZenSlice</Typography>
+          <Box
+            sx={{
+              display: "flex",
+              gap: "8px",
+              WebkitAppRegion: "no-drag", // This makes the buttons non-draggable and clickable
+            }}
+          >
+            <img 
+              src="/buttons/cross.jpeg" 
+              alt="Reload" 
+              style={{ width: "24px", height: "24px", cursor: "pointer" }} 
+              onClick={handleReload}
+            />
+            <img 
+              src="/buttons/cross.jpeg" 
+              alt="Minimize" 
+              style={{ width: "24px", height: "24px", cursor: "pointer" }} 
+              onClick={handleMinimize}
+            />
+            <img 
+              src="/buttons/cross.jpeg" 
+              alt="Close" 
+              style={{ width: "24px", height: "24px", cursor: "pointer" }} 
+              onClick={handleClose}
+            />
+          </Box>
+        </Box>
         <Dashboard />
-      </div>
+      </Box>
     </ThemeProvider>
   );
 }
