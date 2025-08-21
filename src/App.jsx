@@ -23,7 +23,8 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 12,
-          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+          boxShadow:
+            "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
         },
       },
     },
@@ -36,7 +37,7 @@ function App() {
     style.innerHTML = `
       @font-face {
         font-family: 'Pineapple Grass';
-        src: url('/fonts/Pineapple_Grass.ttf') format('truetype');
+        src: url('${process.env.PUBLIC_URL}/fonts/Pineapple_Grass.ttf') format('truetype');
         font-weight: normal;
         font-style: normal;
         font-display: swap;
@@ -44,7 +45,7 @@ function App() {
       
       body {
         font-family: 'Pineapple Grass', 'Montserrat', 'Poppins', sans-serif;
-        cursor: url('/cursors/cursor.png'), auto;
+        cursor: url('${process.env.PUBLIC_URL}/cursors/cursor.png'), auto;
       }
     `;
     document.head.appendChild(style);
@@ -65,15 +66,16 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box 
-        className="App" 
-        sx={{ 
-          display: "flex", 
-          flexDirection: "column", 
-          minHeight: "100vh", 
+      <Box
+        className="App"
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          minHeight: "100vh",
           backgroundColor: "#FFDDC4",
         }}
       >
+        {/* Header Bar */}
         <Box
           sx={{
             display: "flex",
@@ -88,34 +90,38 @@ function App() {
             WebkitAppRegion: "drag", // This makes the header draggable
           }}
         >
-          <Typography variant="h6" sx={{ color: "#5A4A42" }}>ZenSlice</Typography>
+          <Typography variant="h6" sx={{ color: "#5A4A42" }}>
+            ZenSlice
+          </Typography>
           <Box
             sx={{
               display: "flex",
               gap: "8px",
-              WebkitAppRegion: "no-drag", // This makes the buttons non-draggable and clickable
+              WebkitAppRegion: "no-drag", // Buttons stay clickable
             }}
           >
-            <img 
-              src="/buttons/cross.jpeg" 
-              alt="Reload" 
-              style={{ width: "24px", height: "24px", cursor: "pointer" }} 
+            <img
+              src={`${process.env.PUBLIC_URL}/buttons/cross.jpeg`}
+              alt="Reload"
+              style={{ width: "24px", height: "24px", cursor: "pointer" }}
               onClick={handleReload}
             />
-            <img 
-              src="/buttons/cross.jpeg" 
-              alt="Minimize" 
-              style={{ width: "24px", height: "24px", cursor: "pointer" }} 
+            <img
+              src={`${process.env.PUBLIC_URL}/buttons/cross.jpeg`}
+              alt="Minimize"
+              style={{ width: "24px", height: "24px", cursor: "pointer" }}
               onClick={handleMinimize}
             />
-            <img 
-              src="/buttons/cross.jpeg" 
-              alt="Close" 
-              style={{ width: "24px", height: "24px", cursor: "pointer" }} 
+            <img
+              src={`${process.env.PUBLIC_URL}/buttons/cross.jpeg`}
+              alt="Close"
+              style={{ width: "24px", height: "24px", cursor: "pointer" }}
               onClick={handleClose}
             />
           </Box>
         </Box>
+
+        {/* Main Dashboard */}
         <Dashboard />
       </Box>
     </ThemeProvider>

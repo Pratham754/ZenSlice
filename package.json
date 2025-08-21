@@ -70,14 +70,6 @@
       {
         "from": "public/fonts",
         "to": "fonts"
-      },
-      {
-        "from": "public/buttons",
-        "to": "buttons"
-      },
-      {
-        "from": "public/cursors",
-        "to": "cursors"
       }
     ],
     "win": {

@@ -32,6 +32,15 @@ function createWindow() {
     mainWindow.loadURL("http://localhost:3000");
   } else {
     mainWindow.loadFile(path.join(__dirname, "..", "..", "build", "index.html"));
+
+    mainWindow.webContents.on("before-input-event", (event, input) => {
+      if (
+        (input.control && input.shift && input.key.toLowerCase() === "i") ||
+        input.key === "F12"
+      ) {
+        event.preventDefault();
+      }
+    });
   }
 
   // Create tray icon
@@ -179,6 +188,18 @@ ipcMain.handle("get-usage-by-date", async (event, date) => {
       .all(date);
   } finally {
     db.close();
+  }
+});
+
+ipcMain.on('minimize-app', () => {
+  if (mainWindow) {
+    mainWindow.minimize();
+  }
+});
+
+ipcMain.on('close-app', () => {
+  if (mainWindow) {
+    mainWindow.close();
   }
 });
 

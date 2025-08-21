@@ -9,7 +9,7 @@ contextBridge.exposeInMainWorld("api", {
   // Window control functions
   minimizeApp: () => {
     try {
-      ipcRenderer.send('minimize-window');
+      ipcRenderer.send('minimize-app');
     } catch (e) {
       console.error('Failed to minimize window:', e);
     }
@@ -17,7 +17,7 @@ contextBridge.exposeInMainWorld("api", {
   
   closeApp: () => {
     try {
-      ipcRenderer.send('close-window');
+      ipcRenderer.send('close-app');
     } catch (e) {
       console.error('Failed to close window:', e);
     }
