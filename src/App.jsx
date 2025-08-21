@@ -101,13 +101,13 @@ function App() {
             }}
           >
             <img
-              src={`${process.env.PUBLIC_URL}/buttons/cross.jpeg`}
+              src={`${process.env.PUBLIC_URL}/buttons/reload.png`}
               alt="Reload"
               style={{ width: "24px", height: "24px", cursor: "pointer" }}
               onClick={handleReload}
             />
             <img
-              src={`${process.env.PUBLIC_URL}/buttons/cross.jpeg`}
+              src={`${process.env.PUBLIC_URL}/buttons/minimize.jpeg`}
               alt="Minimize"
               style={{ width: "24px", height: "24px", cursor: "pointer" }}
               onClick={handleMinimize}
