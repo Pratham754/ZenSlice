@@ -1,7 +1,7 @@
 const { app, BrowserWindow, ipcMain, Tray, Menu } = require("electron");
 const path = require("path");
 const Database = require("better-sqlite3");
-const autoStart = require("./autoStart");
+const { setAutoStart, isAutoStartEnabled } = require("./autoStart");
 const fs = require("fs");
 const { trackUsage, DB_FILE } = require("./tracker");
 
@@ -75,7 +75,11 @@ function createWindow() {
   trackerInterval = trackUsage();
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  // Set auto-start to be true whenever the app is launched
+  setAutoStart(true);
+  createWindow();
+});
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
@@ -201,12 +205,4 @@ ipcMain.on('close-app', () => {
   if (mainWindow) {
     mainWindow.close();
   }
-});
-
-// IPC: Auto-start options
-ipcMain.handle("enable-auto-start", async () => autoStart.enableAutoStart());
-ipcMain.handle("disable-auto-start", async () => autoStart.disableAutoStart());
-ipcMain.handle("check-auto-start", async () => {
-  const shortcutPath = path.join(autoStart.getStartupFolder(), "ZenSlice.lnk");
-  return fs.existsSync(shortcutPath);
 });

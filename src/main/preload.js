@@ -78,31 +78,4 @@ contextBridge.exposeInMainWorld("api", {
       return [];
     }
   },
-  
-  enableAutoStart: async () => {
-    try {
-      return await ipcRenderer.invoke("enable-auto-start");
-    } catch (e) {
-      console.error("Failed to enable auto-start:", e);
-      return false;
-    }
-  },
-  
-  disableAutoStart: async () => {
-    try {
-      return await ipcRenderer.invoke("disable-auto-start");
-    } catch (e) {
-      console.error("Failed to disable auto-start:", e);
-      return false;
-    }
-  },
-  
-  checkAutoStart: async () => {
-    try {
-      return await ipcRenderer.invoke("check-auto-start");
-    } catch (e) {
-      console.error("Failed to check auto-start:", e);
-      return false;
-    }
-  },
 });

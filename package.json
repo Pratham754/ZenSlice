@@ -73,10 +73,7 @@
       }
     ],
     "win": {
-      "target": [
-        "nsis",
-        "portable"
-      ],
+      "target": "nsis",
       "icon": "logo.ico",
       "publisherName": "Pratham Choudhary",
       "artifactName": "${productName}-${version}-${arch}.${ext}"

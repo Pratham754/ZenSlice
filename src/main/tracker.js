@@ -23,7 +23,11 @@ const EXCLUDED_PROCESSES = new Set([
   'taskhostw.exe',
   'shellexperiencehost.exe',
   'backgroundtaskhost.exe',
-  'applicationframehost.exe'
+  'applicationframehost.exe',
+  'lockapp.exe',
+  'searchhost.exe',
+  'applicationframehost.exe',
+  'credential manager ui host'
 ]);
 
 function initDb() {
