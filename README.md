@@ -1,43 +1,81 @@
-ZenSlice
-Your Personal Screen Time Tracker
-Welcome to the ZenSlice GitHub repository! ZenSlice is a simple, elegant, and powerful desktop application designed to help you understand and manage your screen time. We believe that being mindful of how you spend your time on your computer is the first step toward a healthier and more focused digital life.
+# 🌿 ZenSlice -- Digital Wellbeing for PC
 
-With a clean, pixel-art-inspired interface, ZenSlice provides a clear and detailed overview of your computer usage without any distractions. It runs quietly in the background, collecting data to present you with insightful reports.
+ZenSlice is a **desktop application** designed to help you take control
+of your digital habits.\
+It tracks your **screen time** and **app usage**, presenting clear
+dashboards and insights so you can make healthier choices about your
+time on the computer.
 
-Key Features
-Weekly & Daily Insights: Visualize your screen time with beautiful charts that show your usage patterns over the week and for each individual day.
+------------------------------------------------------------------------
 
-App Usage Breakdown: See exactly which applications and programs are taking up most of your time with a detailed pie chart.
+## ✨ Features
 
-Essential Stats: Get a quick glance at your weekly total screen time, daily average, and the number of active apps you've used.
+-   ⏱ **Screen Time Tracking** -- See how long your PC has been active
+    each day.\
+-   📊 **App Usage Insights** -- Know exactly how much time you spend on
+    each app.\
+-   📅 **Weekly & Daily Dashboards** -- Visualize your habits with
+    interactive charts.\
+-   📂 **Data Export** -- Export your usage data to Excel for personal
+    analysis.\
+-   🔒 **Privacy First** -- Your data stays **on your device only**.\
+-   ⚡ **Runs in Background** -- Lightweight, auto-starts with your
+    system.
 
-Lightweight & Secure: ZenSlice is a lightweight application that respects your privacy. It tracks usage data locally on your machine and never sends any information to the internet.
+------------------------------------------------------------------------
 
-Simple Navigation: Easily browse through your usage history with intuitive navigation for previous weeks.
+## 🚀 Getting Started
 
-How to Install
-Getting started with ZenSlice is quick and easy.
+1.  **Download ZenSlice**
+    -   Head to the [Releases](../../releases) page and grab the latest
+        installer for Windows.
+2.  **Install & Launch**
+    -   Run the installer and ZenSlice will appear in your system tray.\
+    -   Click the tray icon anytime to open the dashboard.
+3.  **Explore Your Dashboard**
+    -   View **daily app usage**, **weekly summaries**, and insights
+        into your habits.
 
-Go to the Releases page.
+------------------------------------------------------------------------
 
-Download the latest installer file for your operating system (e.g., ZenSlice-Setup.exe for Windows).
+## 📤 Exporting Your Data
 
-Run the installer and follow the on-screen instructions.
+ZenSlice allows you to export your tracked data into **Excel** for easy
+sharing or analysis.\
+- Go to **Settings → Export Data**\
+- Choose a date range\
+- Your data will be saved as an Excel file
 
-Once installed, ZenSlice will automatically start tracking your screen time in the background. You can access the dashboard from your system tray or by launching the application.
+------------------------------------------------------------------------
 
-How to Use
-View Your Dashboard: Open the ZenSlice application to see your personalized dashboard. The main screen shows your weekly screen time and an app-by-app breakdown for the current day.
+## 🔧 Settings & Controls
 
-Explore Past Weeks: Use the navigation arrows on the weekly screen time chart to go back in time and view your past usage.
+-   **Auto Start** -- ZenSlice launches automatically when your computer
+    boots.\
+-   **Clear Data** -- Easily reset your stored history if needed.\
+-   **Tray Menu** -- Right-click the tray icon for quick access.
 
-Click for Daily Details: Click on any day in the weekly chart to see a detailed report of your app usage for that specific day.
+------------------------------------------------------------------------
 
-Support
-If you encounter any issues, have a suggestion, or want to contribute, please use the following resources:
+## 💡 Why ZenSlice?
 
-Issues: Found a bug or have an idea for a new feature? Please open a new issue on the Issues tab.
+Unlike typical productivity trackers, ZenSlice focuses on **simplicity
+and privacy**.\
+It helps you:\
+✔ Identify distractions\
+✔ Track healthy screen habits\
+✔ Stay mindful of digital wellbeing
 
-Discussions: For general questions or to chat with the community, visit our Discussions page.
+------------------------------------------------------------------------
 
-Thank you for using ZenSlice!
+## 📌 Support
+
+-   Found a bug? Have suggestions? Open an issue in the
+    [Issues](../../issues) tab.\
+-   For feature requests, please share your ideas with us!
+
+------------------------------------------------------------------------
+
+## 📜 License
+
+ZenSlice is distributed under the **MIT License**.
