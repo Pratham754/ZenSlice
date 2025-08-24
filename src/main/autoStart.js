@@ -1,71 +1,37 @@
 // autoStart.js
 
-const { app } = require('electron');
-const path = require('path');
-const fs = require('fs');
+const { app } = require("electron");
 
-function enableAutoStart() {
-  const appPath = app.getPath('exe');
-  const appName = path.basename(appPath);
-  const startupFolder = getStartupFolder();
-  
-  if (!startupFolder) return false;
-
-  const shortcutPath = path.join(startupFolder, 'ZenSlice.lnk');
-  
-  try {
-    // Create Windows shortcut using PowerShell
-    const { execSync } = require('child_process');
-    const powershellCommand = `
-      $ws = New-Object -ComObject WScript.Shell;
-      $s = $ws.CreateShortcut('${shortcutPath}');
-      $s.TargetPath = '${appPath}';
-      $s.Arguments = '--minimized';
-      $s.WorkingDirectory = '${path.dirname(appPath)}';
-      $s.WindowStyle = 7;
-      $s.Save()
-    `;
-    
-    execSync(`powershell -command "${powershellCommand}"`, { stdio: 'ignore' });
-    return true;
-  } catch (e) {
-    console.error('Failed to create startup shortcut:', e);
-    return false;
+/**
+ * Toggles the app's auto-start status.
+ * @param {boolean} enable If true, sets the app to start on login. If false, it disables it.
+ */
+function setAutoStart(enable) {
+  if (process.platform === "win32") {
+    app.setLoginItemSettings({
+      openAtLogin: enable,
+      path: app.getPath("exe"),
+      args: ["--minimized"],
+    });
+  } else {
+    // macOS and Linux
+    app.setLoginItemSettings({
+      openAtLogin: enable,
+      args: ["--minimized"],
+    });
   }
 }
 
-function disableAutoStart() {
-  const startupFolder = getStartupFolder();
-  if (!startupFolder) return false;
-
-  const shortcutPath = path.join(startupFolder, 'ZenSlice.lnk');
-  
-  try {
-    if (fs.existsSync(shortcutPath)) {
-      fs.unlinkSync(shortcutPath);
-    }
-    return true;
-  } catch (e) {
-    console.error('Failed to remove startup shortcut:', e);
-    return false;
-  }
-}
-
-function getStartupFolder() {
-  if (process.platform !== 'win32') return null;
-  
-  return path.join(
-    app.getPath('appData'),
-    'Microsoft',
-    'Windows',
-    'Start Menu',
-    'Programs',
-    'Startup'
-  );
+/**
+ * Checks if the app is currently configured to auto-start.
+ * @returns {boolean} True if the app is set to auto-start, false otherwise.
+ */
+function isAutoStartEnabled() {
+  const settings = app.getLoginItemSettings();
+  return settings.openAtLogin;
 }
 
 module.exports = {
-  enableAutoStart,
-  disableAutoStart,
-  getStartupFolder
+  setAutoStart,
+  isAutoStartEnabled,
 };

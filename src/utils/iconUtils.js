@@ -1,15 +1,16 @@
-const { app } = require('electron'); // 'nativeImage' is no longer needed
-const path = require('path');
-const fs = require('fs');
-const crypto = require('crypto');
+const { app } = require("electron");
+const path = require("path");
+const fs = require("fs/promises"); // Use the promises API for async operations
+const crypto = require("crypto");
 
 // Use the dedicated Windows module for icon extraction
-const extractFileIcon = require('extract-file-icon');
+const extractFileIcon = require("extract-file-icon");
 
 // Get a writable cache directory
 function getCacheDir() {
-  const cacheDir = path.join(app.getPath('userData'), "icon_cache");
-  fs.mkdirSync(cacheDir, { recursive: true });
+  const cacheDir = path.join(app.getPath("userData"), "icon_cache");
+  // Use a synchronous mkdirSync as it's a one-time operation at startup
+  require("fs").mkdirSync(cacheDir, { recursive: true });
   return cacheDir;
 }
 
@@ -18,7 +19,13 @@ function getCacheDir() {
  * Uses caching to avoid redundant extraction. Returns cached result if available.
  */
 async function getIconFromExecutable(exePath, size = 32) {
-  if (!exePath || !fs.existsSync(exePath)) {
+  if (
+    !exePath ||
+    !(await fs
+      .access(exePath)
+      .then(() => true)
+      .catch(() => false))
+  ) {
     console.error(`[iconUtils] Executable not found: ${exePath}`);
     return null;
   }
@@ -27,16 +34,18 @@ async function getIconFromExecutable(exePath, size = 32) {
   const cacheDir = getCacheDir();
 
   // Generate a hash for the exePath
-  const hashName = crypto.createHash('md5').update(exePath).digest('hex');
+  const hashName = crypto.createHash("md5").update(exePath).digest("hex");
   const cachedPath = path.join(cacheDir, `${hashName}_${size}.png`);
 
   // Return cached icon if it exists
-  if (fs.existsSync(cachedPath)) {
-    try {
-      return fs.readFileSync(cachedPath);
-    } catch (error) {
-      console.error(`[iconUtils] Failed to read cached icon: ${error}`);
-    }
+  try {
+    const cachedIcon = await fs.readFile(cachedPath);
+    return cachedIcon;
+  } catch (error) {
+    // If reading the file fails, it likely doesn't exist. Proceed to extract.
+    console.warn(
+      `[iconUtils] Cached icon not found or unreadable. Extracting new icon: ${error.message}`
+    );
   }
 
   try {
@@ -48,17 +57,18 @@ async function getIconFromExecutable(exePath, size = 32) {
       return null;
     }
 
-    // Save the new icon to the cache
+    // Save the new icon to the cache asynchronously
     try {
-      fs.writeFileSync(cachedPath, pngBuffer);
+      await fs.writeFile(cachedPath, pngBuffer);
     } catch (writeError) {
       console.error(`[iconUtils] Failed to cache icon: ${writeError}`);
     }
 
     return pngBuffer;
-
   } catch (error) {
-    console.error(`[iconUtils] Failed to extract icon from ${exePath}: ${error}`);
+    console.error(
+      `[iconUtils] Failed to extract icon from ${exePath}: ${error}`
+    );
     return null;
   }
 }
@@ -68,11 +78,13 @@ async function getIconFromExecutable(exePath, size = 32) {
  */
 async function getIconForExe(exePath) {
   try {
-    if (exePath && fs.existsSync(exePath)) {
+    if (exePath) {
       return await getIconFromExecutable(exePath);
     }
   } catch (error) {
-    console.error(`[iconUtils] Error getting icon for EXE ${exePath}: ${error}`);
+    console.error(
+      `[iconUtils] Error getting icon for EXE ${exePath}: ${error}`
+    );
   }
   return null;
 }
@@ -82,9 +94,9 @@ async function getIconForExe(exePath) {
  */
 async function getIconForPid(pid) {
   try {
-    const psList = await import('ps-list');
+    const psList = await import("ps-list");
     const processes = await psList.default();
-    const process = processes.find(p => p.pid === pid);
+    const process = processes.find((p) => p.pid === pid);
 
     if (process && process.path) {
       return await getIconFromExecutable(process.path);
@@ -98,19 +110,20 @@ async function getIconForPid(pid) {
 /**
  * Clear the icon cache
  */
-function clearIconCache() {
+async function clearIconCache() {
   try {
     const cacheDir = getCacheDir();
-    const files = fs.readdirSync(cacheDir);
-    files.forEach(file => {
-      if (file.endsWith('.png')) {
-        fs.unlinkSync(path.join(cacheDir, file));
-      }
-    });
-    console.log('[iconUtils] Icon cache cleared');
+    const files = await fs.readdir(cacheDir);
+    const pngFiles = files.filter((file) => file.endsWith(".png"));
+
+    await Promise.all(
+      pngFiles.map((file) => fs.unlink(path.join(cacheDir, file)))
+    );
+
+    console.log("[iconUtils] Icon cache cleared");
     return true;
   } catch (error) {
-    console.error('[iconUtils] Failed to clear icon cache:', error);
+    console.error("[iconUtils] Failed to clear icon cache:", error);
     return false;
   }
 }
@@ -118,30 +131,30 @@ function clearIconCache() {
 /**
  * Get cache statistics
  */
-function getCacheStats() {
+async function getCacheStats() {
   try {
     const cacheDir = getCacheDir();
-    const files = fs.readdirSync(cacheDir);
-    const pngFiles = files.filter(file => file.endsWith('.png'));
+    const files = await fs.readdir(cacheDir);
+    const pngFiles = files.filter((file) => file.endsWith(".png"));
 
     let totalSize = 0;
-    pngFiles.forEach(file => {
+    for (const file of pngFiles) {
       try {
-        const stats = fs.statSync(path.join(cacheDir, file));
+        const stats = await fs.stat(path.join(cacheDir, file));
         totalSize += stats.size;
       } catch (error) {
         // Skip files that can't be stat'd
       }
-    });
+    }
 
     return {
       totalIcons: pngFiles.length,
       totalSize: totalSize,
-      totalSizeMB: (totalSize / (1024 * 1024)).toFixed(2)
+      totalSizeMB: (totalSize / (1024 * 1024)).toFixed(2),
     };
   } catch (error) {
-    console.error('[iconUtils] Failed to get cache stats:', error);
-    return { totalIcons: 0, totalSize: 0, totalSizeMB: '0.00' };
+    console.error("[iconUtils] Failed to get cache stats:", error);
+    return { totalIcons: 0, totalSize: 0, totalSizeMB: "0.00" };
   }
 }
 
@@ -150,5 +163,5 @@ module.exports = {
   getIconForExe,
   getIconForPid,
   clearIconCache,
-  getCacheStats
+  getCacheStats,
 };

@@ -5,6 +5,23 @@ const { contextBridge, ipcRenderer } = require("electron");
 console.log("✅ Preload script loaded");
 
 contextBridge.exposeInMainWorld("api", {
+  // Window control functions
+  minimizeApp: () => {
+    try {
+      ipcRenderer.send("minimize-app");
+    } catch (e) {
+      console.error("Failed to minimize window:", e);
+    }
+  },
+
+  closeApp: () => {
+    try {
+      ipcRenderer.send("close-app");
+    } catch (e) {
+      console.error("Failed to close window:", e);
+    }
+  },
+
   // Fetch usage data for each app
   getUsageData: async () => {
     try {
@@ -56,35 +73,29 @@ contextBridge.exposeInMainWorld("api", {
     try {
       return await ipcRenderer.invoke("get-usage-by-date", date);
     } catch (e) {
-      console.error("Failed to fetch usage by date:", e);
+      console.t("Failed to fetch usage by date:", e);
       return [];
     }
   },
-  
-  enableAutoStart: async () => {
+
+  exportDataExcel: async (start, end) => {
     try {
-      return await ipcRenderer.invoke("enable-auto-start");
+      return await ipcRenderer.invoke("export-data-excel", {
+        startDate: start,
+        endDate: end,
+      });
     } catch (e) {
-      console.error("Failed to enable auto-start:", e);
-      return false;
+      console.error("Failed to export data:", e);
+      return { success: false, error: e.message };
     }
   },
-  
-  disableAutoStart: async () => {
+
+  getEarliestDate: async () => {
     try {
-      return await ipcRenderer.invoke("disable-auto-start");
+      return await ipcRenderer.invoke("get-earliest-date");
     } catch (e) {
-      console.error("Failed to disable auto-start:", e);
-      return false;
-    }
-  },
-  
-  checkAutoStart: async () => {
-    try {
-      return await ipcRenderer.invoke("check-auto-start");
-    } catch (e) {
-      console.error("Failed to check auto-start:", e);
-      return false;
+      console.error("Failed to fetch earliest date:", e);
+      return null;
     }
   },
 });
