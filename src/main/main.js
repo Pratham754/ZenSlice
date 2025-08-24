@@ -5,6 +5,16 @@ const { setAutoStart, isAutoStartEnabled } = require("./autoStart");
 const fs = require("fs");
 const { trackUsage, DB_FILE } = require("./tracker");
 
+// Handle squirrel events, which are common for Windows installers
+if (require("electron-squirrel-startup")) {
+  app.quit();
+}
+
+// Check for and handle uninstall command
+if (process.argv.includes("--squirrel-uninstall")) {
+  app.quit();
+}
+
 const isDev = !app.isPackaged;
 
 let mainWindow;
@@ -31,7 +41,9 @@ function createWindow() {
   if (isDev) {
     mainWindow.loadURL("http://localhost:3000");
   } else {
-    mainWindow.loadFile(path.join(__dirname, "..", "..", "build", "index.html"));
+    mainWindow.loadFile(
+      path.join(__dirname, "..", "..", "build", "index.html")
+    );
 
     mainWindow.webContents.on("before-input-event", (event, input) => {
       if (
@@ -195,13 +207,13 @@ ipcMain.handle("get-usage-by-date", async (event, date) => {
   }
 });
 
-ipcMain.on('minimize-app', () => {
+ipcMain.on("minimize-app", () => {
   if (mainWindow) {
     mainWindow.minimize();
   }
 });
 
-ipcMain.on('close-app', () => {
+ipcMain.on("close-app", () => {
   if (mainWindow) {
     mainWindow.close();
   }

@@ -1,7 +1,16 @@
 // WeeklyStats.jsx
 
 import React, { useEffect, useState } from "react";
-import { Grid, Typography, Card, Box, FormControl, InputLabel, Select, MenuItem } from "@mui/material";
+import {
+  Grid,
+  Typography,
+  Card,
+  Box,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+} from "@mui/material";
 import {
   BarChart,
   Bar,
@@ -48,7 +57,9 @@ const WeeklyStats = () => {
   const [dailyAppUsage, setDailyAppUsage] = useState([]);
   const [weekOffset, setWeekOffset] = useState(0);
   const [totalWeekly, setTotalWeekly] = useState(0);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
 
   useEffect(() => {
     const fetchWeeklyData = async () => {
@@ -83,16 +94,20 @@ const WeeklyStats = () => {
       const apps = await window.api?.getUsageByDate?.(selectedDate);
       if (!apps) return;
 
-      const totalMinutes = apps.reduce((sum, app) => sum + (app.duration / 60), 0);
-      
+      const totalMinutes = apps.reduce(
+        (sum, app) => sum + app.duration / 60,
+        0
+      );
+
       let others = 0;
       const filtered = [];
 
       apps.forEach(({ app_name, duration }) => {
         const minutes = duration / 60;
         const percent = (minutes / totalMinutes) * 100;
-        
-        if (percent >= 3) { // Only show apps with >3% usage
+
+        if (percent >= 3) {
+          // Only show apps with >3% usage
           filtered.push({ name: app_name, value: Math.floor(minutes) });
         } else {
           others += minutes;
@@ -114,7 +129,10 @@ const WeeklyStats = () => {
     ? Math.floor(totalWeekly / rawWeeklyData.length)
     : 0;
 
-  const availableDates = rawWeeklyData.map(item => item.date).sort().reverse();
+  const availableDates = rawWeeklyData
+    .map((item) => item.date)
+    .sort()
+    .reverse();
 
   return (
     <Box p={2}>
@@ -124,7 +142,12 @@ const WeeklyStats = () => {
           <Grid container spacing={2}>
             <Grid item xs={12}>
               <Card style={{ padding: "1rem" }}>
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                <Box
+                  display="flex"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  mb={2}
+                >
                   <Typography variant="h6">Weekly Screen Time</Typography>
                   <Box>
                     <span
@@ -138,7 +161,9 @@ const WeeklyStats = () => {
                         cursor: weekOffset === 0 ? "not-allowed" : "pointer",
                         margin: "0 0.5rem",
                       }}
-                      onClick={() => weekOffset === 0 ? null : setWeekOffset((p) => p + 1)}
+                      onClick={() =>
+                        weekOffset === 0 ? null : setWeekOffset((p) => p + 1)
+                      }
                     >
                       ➡
                     </span>
@@ -160,7 +185,12 @@ const WeeklyStats = () => {
             </Grid>
             <Grid item xs={12}>
               <Card style={{ padding: "1rem" }}>
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                <Box
+                  display="flex"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  mb={2}
+                >
                   <Typography variant="h6">App Distribution</Typography>
                   <FormControl size="small" sx={{ minWidth: 120 }}>
                     <InputLabel>Date</InputLabel>
@@ -197,7 +227,10 @@ const WeeklyStats = () => {
                   </PieChart>
                 </ResponsiveContainer>
                 <Typography align="center">
-                  Total: {formatTime(dailyAppUsage.reduce((s, d) => s + d.duration, 0))}
+                  Total:{" "}
+                  {formatTime(
+                    dailyAppUsage.reduce((s, d) => s + d.duration, 0)
+                  )}
                 </Typography>
               </Card>
             </Grid>
@@ -208,26 +241,24 @@ const WeeklyStats = () => {
         <Grid item xs={12} md={3}>
           <Grid container spacing={2} direction="column">
             {[
-              ["Weekly Total", totalWeekly], 
-              ["Daily Average", dailyAvg], 
-              ["Active Apps", dailyAppUsage.length]
-            ].map(
-              ([label, value], i) => (
-                <Grid item key={i}>
-                  <Card
-                    style={{
-                      padding: "1.5rem",
-                      textAlign: "center",
-                      boxShadow: "0px 2px 10px rgba(0,0,0,0.1)",
-                      backgroundColor: "#EBBC7C"                      
-                    }}
-                  >
-                    <Typography variant="subtitle2">{label}</Typography>
-                    <Typography variant="h5">{formatTime(value)}</Typography>
-                  </Card>
-                </Grid>
-              )
-            )}
+              ["Weekly Total", totalWeekly],
+              ["Daily Average", dailyAvg],
+              ["Active Apps", dailyAppUsage.length],
+            ].map(([label, value], i) => (
+              <Grid item key={i}>
+                <Card
+                  style={{
+                    padding: "1.5rem",
+                    textAlign: "center",
+                    boxShadow: "0px 2px 10px rgba(0,0,0,0.1)",
+                    backgroundColor: "#EBBC7C",
+                  }}
+                >
+                  <Typography variant="subtitle2">{label}</Typography>
+                  <Typography variant="h5">{formatTime(value)}</Typography>
+                </Card>
+              </Grid>
+            ))}
           </Grid>
         </Grid>
       </Grid>

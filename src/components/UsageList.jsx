@@ -37,14 +37,17 @@ const UsageList = () => {
       try {
         const weeklyData = await window.api?.getWeeklyPCScreenTime?.();
         if (Array.isArray(weeklyData)) {
-          const dates = weeklyData.map(item => item.date).sort().reverse();
+          const dates = weeklyData
+            .map((item) => item.date)
+            .sort()
+            .reverse();
           setAvailableDates(dates);
         }
       } catch (error) {
         console.error("Failed to fetch available dates:", error);
       }
     };
-    
+
     fetchAvailableDates();
   }, []);
 
@@ -64,9 +67,7 @@ const UsageList = () => {
         window.api.getAppIconByExe(exe_path).then((base64Icon) => {
           setIcons((prev) => ({
             ...prev,
-            [exe_path]: base64Icon
-              ? `data:image/png;base64,${base64Icon}`
-              : null,
+            [exe_path]: base64Icon || null,
           }));
         });
       }
@@ -75,11 +76,16 @@ const UsageList = () => {
 
   return (
     <Card style={{ padding: "2rem" }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={2}
+      >
         <Typography variant="h6">
           App Usage for {new Date(selectedDate).toDateString()}
         </Typography>
-        
+
         <FormControl size="small" sx={{ minWidth: 120 }}>
           <InputLabel>Date</InputLabel>
           <Select
@@ -101,16 +107,24 @@ const UsageList = () => {
       ) : (
         <List>
           {dailyAppUsage.map((entry, idx) => {
-            const percent = totalScreenTime > 0 ? (entry.duration / totalScreenTime) * 100 : 0;
+            const percent =
+              totalScreenTime > 0
+                ? (entry.duration / totalScreenTime) * 100
+                : 0;
             return (
               <div key={idx}>
                 <ListItem>
                   <Avatar
-                    src={icons[entry.exe_path] || undefined}
+                    src={
+                      icons[entry.exe_path]
+                        ? `data:image/png;base64,${icons[entry.exe_path]}`
+                        : undefined
+                    }
                     alt={entry.app_name}
                     sx={{ width: 32, height: 32, mr: 2 }}
                   >
-                    {entry.app_name.charAt(0)}
+                    {/* fallback letter if no icon */}
+                    {!icons[entry.exe_path] && entry.app_name?.charAt(0)}
                   </Avatar>
                   <Box flex={1}>
                     <Typography>{entry.app_name}</Typography>
@@ -120,9 +134,7 @@ const UsageList = () => {
                       sx={{ height: 6, borderRadius: 5, mt: 0.5 }}
                     />
                   </Box>
-                  <Typography ml={2}>
-                    {formatTime(entry.duration)}
-                  </Typography>
+                  <Typography ml={2}>{formatTime(entry.duration)}</Typography>
                 </ListItem>
                 <Divider />
               </div>

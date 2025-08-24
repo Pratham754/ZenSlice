@@ -1,12 +1,13 @@
-const { app } = require('electron');
-const sqlite3 = require('better-sqlite3');
-const path = require('path');
-const { getIconForPid } = require('../utils/iconUtils');
+const { app } = require("electron");
+const sqlite3 = require("better-sqlite3");
+const path = require("path");
+const os = require("os");
+const { getIconForPid } = require("../utils/iconUtils");
 
 // Get a writable DB location
 function getDbPath() {
-  const dataDir = path.join(app.getPath('userData'), "ZenSlice");
-  require('fs').mkdirSync(dataDir, { recursive: true });
+  const dataDir = path.join(app.getPath("userData"), "ZenSlice");
+  require("fs").mkdirSync(dataDir, { recursive: true });
   return path.join(dataDir, "usage_data.db");
 }
 
@@ -14,21 +15,26 @@ const DB_FILE = getDbPath();
 
 // Processes to ignore (case-insensitive)
 const EXCLUDED_PROCESSES = new Set([
-  'system idle process',
-  'system',
-  'explorer.exe',
-  'runtimebroker.exe',
-  'searchui.exe',
-  'startmenuexperiencehost.exe',
-  'taskhostw.exe',
-  'shellexperiencehost.exe',
-  'backgroundtaskhost.exe',
-  'applicationframehost.exe',
-  'lockapp.exe',
-  'searchhost.exe',
-  'applicationframehost.exe',
-  'credential manager ui host'
+  "system idle process",
+  "system",
+  "explorer.exe",
+  "runtimebroker.exe",
+  "searchui.exe",
+  "startmenuexperiencehost.exe",
+  "taskhostw.exe",
+  "shellexperiencehost.exe",
+  "backgroundtaskhost.exe",
+  "applicationframehost.exe",
+  "lockapp.exe",
+  "searchhost.exe",
+  "applicationframehost.exe",
+  "credential manager ui host",
+  "application frame host",
+  "windows start experience host",
 ]);
+
+// Get the system's temporary directory for exclusion check
+const TEMP_DIR = os.tmpdir().toLowerCase();
 
 function initDb() {
   const conn = sqlite3(DB_FILE);
@@ -53,9 +59,9 @@ function initDb() {
 async function getActiveWindowInfo() {
   try {
     // Use dynamic import for ESM package
-    const activeWin = await import('active-win');
+    const activeWin = await import("active-win");
     const result = await activeWin.default();
-    
+
     if (!result || !result.owner || !result.owner.path) {
       return { appName: null, exePath: null, pid: null };
     }
@@ -63,12 +69,19 @@ async function getActiveWindowInfo() {
     const procName = result.owner.name.toLowerCase();
     const exePath = result.owner.path;
 
+    // Check if the process is from a temporary directory
+    if (exePath.toLowerCase().startsWith(TEMP_DIR)) {
+      console.warn(`[tracker] Ignoring temporary process: ${exePath}`);
+      return { appName: null, exePath: null, pid: null };
+    }
+
     if (EXCLUDED_PROCESSES.has(procName)) {
       return { appName: null, exePath: null, pid: null };
     }
 
-    const appDisplayName = procName.replace('.exe', '').charAt(0).toUpperCase() + 
-                          procName.replace('.exe', '').slice(1);
+    const appDisplayName =
+      procName.replace(".exe", "").charAt(0).toUpperCase() +
+      procName.replace(".exe", "").slice(1);
 
     return { appName: appDisplayName, exePath, pid: result.owner.processId };
   } catch (error) {
@@ -102,23 +115,45 @@ function trackUsage() {
   console.log("[Tracker] Running...");
 
   const conn = sqlite3(DB_FILE);
-  
+
   const usageTimeMap = new Map();
   let pcTimeCounter = 0;
   let lastCommitTime = Date.now();
-  
+
   let lastAppKey = null;
   let lastSwitchTime = Date.now();
+  let lastDay = new Date().toISOString().split("T")[0];
 
   // Track usage in intervals
   const intervalId = setInterval(async () => {
     try {
       const now = Date.now();
-      const dateStr = new Date().toISOString().split('T')[0];
-      
-      const { appName: newApp, exePath: newPath, pid: newPid } = await getActiveWindowInfo();
+      const currentDay = new Date().toISOString().split("T")[0];
+
+      // Handle midnight transition
+      if (currentDay !== lastDay) {
+        // Commit all pending usage for the previous day
+        for (const [key, duration] of usageTimeMap.entries()) {
+          const [appName, exePath] = key.split("|");
+          updateAppUsage(conn, appName, exePath, lastDay, duration);
+        }
+        updatePcScreenTime(conn, lastDay, pcTimeCounter);
+
+        // Reset for the new day
+        usageTimeMap.clear();
+        pcTimeCounter = 0;
+        lastDay = currentDay;
+        lastSwitchTime = now;
+        lastCommitTime = now;
+      }
+
+      const {
+        appName: newApp,
+        exePath: newPath,
+        pid: newPid,
+      } = await getActiveWindowInfo();
       const newKey = newApp && newPath ? `${newApp}|${newPath}` : null;
-      
+
       if (newKey !== lastAppKey) {
         if (lastAppKey) {
           const duration = Math.floor((now - lastSwitchTime) / 1000);
@@ -129,16 +164,17 @@ function trackUsage() {
         lastSwitchTime = now;
         lastAppKey = newKey;
       }
-      
-      if (now - lastCommitTime >= 10000) { // 10 seconds
+
+      if (now - lastCommitTime >= 10000) {
+        // 10 seconds
         for (const [key, duration] of usageTimeMap.entries()) {
-          const [appName, exePath] = key.split('|');
-          updateAppUsage(conn, appName, exePath, dateStr, duration);
+          const [appName, exePath] = key.split("|");
+          updateAppUsage(conn, appName, exePath, currentDay, duration);
         }
-        
-        updatePcScreenTime(conn, dateStr, pcTimeCounter);
-        
-        conn.pragma('optimize');
+
+        updatePcScreenTime(conn, currentDay, pcTimeCounter);
+
+        conn.pragma("optimize");
         usageTimeMap.clear();
         pcTimeCounter = 0;
         lastCommitTime = now;
@@ -155,7 +191,7 @@ function trackUsage() {
 function getIconBase64ForPid(pid) {
   const iconBytes = getIconForPid(pid);
   if (iconBytes) {
-    return Buffer.from(iconBytes).toString('base64');
+    return Buffer.from(iconBytes).toString("base64");
   }
   return null;
 }
@@ -163,5 +199,5 @@ function getIconBase64ForPid(pid) {
 module.exports = {
   trackUsage,
   getIconBase64ForPid,
-  DB_FILE
+  DB_FILE,
 };

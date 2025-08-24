@@ -1,23 +1,23 @@
 // autoStart.js
 
-const { app } = require('electron');
+const { app } = require("electron");
 
 /**
  * Toggles the app's auto-start status.
  * @param {boolean} enable If true, sets the app to start on login. If false, it disables it.
  */
 function setAutoStart(enable) {
-  if (process.platform === 'win32') {
+  if (process.platform === "win32") {
     app.setLoginItemSettings({
       openAtLogin: enable,
-      path: app.getPath('exe'),
-      args: ['--minimized'],
+      path: app.getPath("exe"),
+      args: ["--minimized"],
     });
   } else {
     // macOS and Linux
     app.setLoginItemSettings({
       openAtLogin: enable,
-      args: ['--minimized'],
+      args: ["--minimized"],
     });
   }
 }
