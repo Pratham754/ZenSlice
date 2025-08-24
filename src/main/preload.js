@@ -77,4 +77,25 @@ contextBridge.exposeInMainWorld("api", {
       return [];
     }
   },
+
+  exportDataExcel: async (start, end) => {
+    try {
+      return await ipcRenderer.invoke("export-data-excel", {
+        startDate: start,
+        endDate: end,
+      });
+    } catch (e) {
+      console.error("Failed to export data:", e);
+      return { success: false, error: e.message };
+    }
+  },
+
+  getEarliestDate: async () => {
+    try {
+      return await ipcRenderer.invoke("get-earliest-date");
+    } catch (e) {
+      console.error("Failed to fetch earliest date:", e);
+      return null;
+    }
+  },
 });

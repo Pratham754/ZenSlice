@@ -53,6 +53,7 @@ function formatWeeklyData(rawData) {
 const WeeklyStats = () => {
   const [weeklyData, setWeeklyData] = useState([]);
   const [rawWeeklyData, setRawWeeklyData] = useState([]);
+  const [allData, setAllData] = useState([]); // keep all data for earliestDate
   const [pieData, setPieData] = useState([]);
   const [dailyAppUsage, setDailyAppUsage] = useState([]);
   const [weekOffset, setWeekOffset] = useState(0);
@@ -61,33 +62,37 @@ const WeeklyStats = () => {
     new Date().toISOString().split("T")[0]
   );
 
+  // Fetch all weekly data once
   useEffect(() => {
-    const fetchWeeklyData = async () => {
+    const fetchAllData = async () => {
       const data = await window.api?.getWeeklyPCScreenTime?.();
-      if (!Array.isArray(data)) return;
-
-      const now = new Date();
-      const start = new Date(now);
-      const dow = now.getDay();
-      const daysSinceMonday = (dow + 6) % 7;
-      start.setDate(now.getDate() - daysSinceMonday + weekOffset * 7);
-      const end = new Date(start);
-      end.setDate(start.getDate() + 6);
-
-      const filtered = data.filter(({ date }) => {
-        const d = new Date(date);
-        return d >= start && d <= end;
-      });
-
-      setRawWeeklyData(filtered);
-      setWeeklyData(formatWeeklyData(filtered));
-
-      const total = filtered.reduce((s, d) => s + d.duration, 0);
-      setTotalWeekly(total);
+      if (Array.isArray(data)) setAllData(data);
     };
+    fetchAllData();
+  }, []);
 
-    fetchWeeklyData();
-  }, [weekOffset]);
+  useEffect(() => {
+    if (!allData.length) return;
+
+    const now = new Date();
+    const start = new Date(now);
+    const dow = now.getDay();
+    const daysSinceMonday = (dow + 6) % 7;
+    start.setDate(now.getDate() - daysSinceMonday + weekOffset * 7);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+
+    const filtered = allData.filter(({ date }) => {
+      const d = new Date(date);
+      return d >= start && d <= end;
+    });
+
+    setRawWeeklyData(filtered);
+    setWeeklyData(formatWeeklyData(filtered));
+
+    const total = filtered.reduce((s, d) => s + d.duration, 0);
+    setTotalWeekly(total);
+  }, [allData, weekOffset]);
 
   useEffect(() => {
     const fetchSelectedDateUsage = async () => {
@@ -107,7 +112,6 @@ const WeeklyStats = () => {
         const percent = (minutes / totalMinutes) * 100;
 
         if (percent >= 3) {
-          // Only show apps with >3% usage
           filtered.push({ name: app_name, value: Math.floor(minutes) });
         } else {
           others += minutes;
@@ -134,10 +138,16 @@ const WeeklyStats = () => {
     .sort()
     .reverse();
 
+  // earliest date across all data
+  const earliestDate =
+    allData.length > 0
+      ? new Date(Math.min(...allData.map((d) => new Date(d.date))))
+      : null;
+
   return (
     <Box p={2}>
       <Grid container spacing={2}>
-        {/* Left Column (Charts) - 75% */}
+        {/* Left Column (Charts) */}
         <Grid item xs={12} md={9}>
           <Grid container spacing={2}>
             <Grid item xs={12}>
@@ -151,8 +161,27 @@ const WeeklyStats = () => {
                   <Typography variant="h6">Weekly Screen Time</Typography>
                   <Box>
                     <span
-                      style={{ cursor: "pointer", margin: "0 0.5rem" }}
-                      onClick={() => setWeekOffset((p) => p - 1)}
+                      style={{
+                        cursor:
+                          earliestDate &&
+                          new Date(
+                            new Date().setDate(
+                              new Date().getDate() + (weekOffset - 1) * 7
+                            )
+                          ) < earliestDate
+                            ? "not-allowed"
+                            : "pointer",
+                        margin: "0 0.5rem",
+                      }}
+                      onClick={() => {
+                        const prevWeekStart = new Date();
+                        prevWeekStart.setDate(
+                          prevWeekStart.getDate() + (weekOffset - 1) * 7
+                        );
+                        if (!earliestDate || prevWeekStart >= earliestDate) {
+                          setWeekOffset((p) => p - 1);
+                        }
+                      }}
                     >
                       ⬅
                     </span>
@@ -161,9 +190,10 @@ const WeeklyStats = () => {
                         cursor: weekOffset === 0 ? "not-allowed" : "pointer",
                         margin: "0 0.5rem",
                       }}
-                      onClick={() =>
-                        weekOffset === 0 ? null : setWeekOffset((p) => p + 1)
-                      }
+                      onClick={() => {
+                        if (weekOffset === 0) return;
+                        setWeekOffset((p) => p + 1);
+                      }}
                     >
                       ➡
                     </span>
@@ -237,7 +267,7 @@ const WeeklyStats = () => {
           </Grid>
         </Grid>
 
-        {/* Right Column (Stats) - 25% */}
+        {/* Right Column (Stats) */}
         <Grid item xs={12} md={3}>
           <Grid container spacing={2} direction="column">
             {[

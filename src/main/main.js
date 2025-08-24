@@ -1,9 +1,11 @@
-const { app, BrowserWindow, ipcMain, Tray, Menu } = require("electron");
+const { app, BrowserWindow, ipcMain, Tray, Menu, dialog } = require("electron");
 const path = require("path");
 const Database = require("better-sqlite3");
-const { setAutoStart, isAutoStartEnabled } = require("./autoStart");
+const { setAutoStart } = require("./autoStart");
 const fs = require("fs");
 const { trackUsage, DB_FILE } = require("./tracker");
+const { exportDataAsExcel } = require("../utils/dbUtils");
+const XLSX = require("xlsx");
 
 // Handle squirrel events, which are common for Windows installers
 if (require("electron-squirrel-startup")) {
@@ -202,6 +204,40 @@ ipcMain.handle("get-usage-by-date", async (event, date) => {
     `
       )
       .all(date);
+  } finally {
+    db.close();
+  }
+});
+
+// IPC: Export data as Excel
+ipcMain.handle("export-data-excel", async (event, { startDate, endDate }) => {
+  try {
+    // Ask user where to save file
+    const { canceled, filePath } = await dialog.showSaveDialog({
+      title: "Export Usage Data",
+      defaultPath: `ZenSlice_Usage_${startDate}_to_${endDate}.xlsx`,
+      filters: [{ name: "Excel Files", extensions: ["xlsx"] }],
+    });
+
+    if (canceled || !filePath) return { cancelled: true };
+
+    // Generate Excel and save
+    await exportDataAsExcel(startDate, endDate, filePath);
+
+    return { success: true, path: filePath };
+  } catch (error) {
+    console.error("Export Excel failed:", error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle("get-earliest-date", async () => {
+  const db = new Database(DB_FILE, { readonly: true });
+  try {
+    const row = db
+      .prepare("SELECT MIN(date) as earliest FROM pc_active_time")
+      .get();
+    return row?.earliest || null;
   } finally {
     db.close();
   }

@@ -33,31 +33,43 @@ const theme = createTheme({
 
 function App() {
   useEffect(() => {
-    const style = document.createElement("style");
-    style.innerHTML = `
-      @font-face {
-        font-family: 'Pineapple Grass';
-        src: url('${process.env.PUBLIC_URL}/fonts/Pineapple_Grass.ttf') format('truetype');
-        font-weight: normal;
-        font-style: normal;
-        font-display: swap;
-      }
-      
-      body {
-        font-family: 'Pineapple Grass', 'Montserrat', 'Poppins', sans-serif;
-        cursor: url('${process.env.PUBLIC_URL}/cursors/cursor.png'), auto;
-      }
-    `;
-    document.head.appendChild(style);
-
-    if (!window.api) {
-      console.warn("Electron API not available - running in development mode");
+  const style = document.createElement("style");
+  style.innerHTML = `
+    @font-face {
+      font-family: 'Pineapple Grass';
+      src: url('${process.env.PUBLIC_URL}/fonts/Pineapple_Grass.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
     }
 
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
+    * {
+      font-family: 'Pineapple Grass', 'Montserrat', 'Poppins', sans-serif !important;
+      cursor: url('${process.env.PUBLIC_URL}/cursors/cursor.png'), auto !important;
+      user-select: none !important;
+      -webkit-user-select: none !important;
+    }
+
+    button, a, [role="button"], input, textarea, select {
+      cursor: url('${process.env.PUBLIC_URL}/cursors/cursor.png'), auto !important;
+    }
+
+    /* Optional: Prevent text inputs from falling back to text cursor */
+    input, textarea {
+      cursor: url('${process.env.PUBLIC_URL}/cursors/cursor.png'), auto !important;
+    }
+  `;
+  document.head.appendChild(style);
+
+  if (!window.api) {
+    console.warn("Electron API not available - running in development mode");
+  }
+
+  return () => {
+    document.head.removeChild(style);
+  };
+}, []);
+
 
   const handleReload = () => window.location.reload();
   const handleMinimize = () => window.api?.minimizeApp();

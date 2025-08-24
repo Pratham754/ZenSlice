@@ -11,11 +11,14 @@ import {
 function Settings() {
   const handleExportData = async () => {
     try {
-      // Pick a date range – you can make this dynamic later
-      const startDate = "2025-08-01";
+      let startDate = await window.api.getEarliestDate();
+      if (!startDate) {
+        // fallback → app install date
+        startDate = new Date().toISOString().slice(0, 10);
+      }
       const endDate = new Date().toISOString().slice(0, 10);
 
-      const result = await window.api.exportDataCSV(startDate, endDate);
+      const result = await window.api.exportDataExcel(startDate, endDate);
 
       if (result.success) {
         alert(`✅ Exported successfully to:\n${result.path}`);
@@ -126,7 +129,7 @@ function Settings() {
               color="textSecondary"
               sx={{ mt: 1, color: "#5A4A42" }}
             >
-              Export your usage data as CSV or clear all stored information
+              Export your usage data as Excel or clear all stored information
             </Typography>
           </Box>
 

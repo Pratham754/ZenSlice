@@ -159,6 +159,17 @@
       window.addEventListener("unhandledrejection", function (e) {
         console.error("Unhandled promise rejection:", e.reason);
       });
+
+      window.addEventListener("DOMContentLoaded", () => {
+        const style = document.createElement("style");
+        style.innerHTML = `
+    * {
+      user-select: none !important;
+      -webkit-user-select: none !important;
+    }
+  `;
+        document.head.appendChild(style);
+      });
     </script>
   </body>
 </html>
