@@ -1,12 +1,16 @@
-# 🌿 ZenSlice -- Digital Wellbeing for PC
+# 🌿 ZenSlice  
+*Your personal digital wellbeing companion*
 
-ZenSlice is a **desktop application** designed to help you take control
-of your digital habits.\
-It tracks your **screen time** and **app usage**, presenting clear
-dashboards and insights so you can make healthier choices about your
-time on the computer.
+<p align="center">
+  <img src="assets/dashboard.png" alt="ZenSlice Dashboard" width="700"/>
+</p>
 
-------------------------------------------------------------------------
+<p align="center">
+  <b>Track. Reflect. Balance.</b><br/>
+  ZenSlice helps you understand your screen habits with beautiful dashboards & total privacy.
+</p>
+
+<br><br>
 
 ## ✨ Features
 
@@ -22,7 +26,7 @@ time on the computer.
 -   ⚡ **Runs in Background** -- Lightweight, auto-starts with your
     system.
 
-------------------------------------------------------------------------
+<br>
 
 ## 🚀 Getting Started
 
@@ -36,7 +40,7 @@ time on the computer.
     -   View **daily app usage**, **weekly summaries**, and insights
         into your habits.
 
-------------------------------------------------------------------------
+<br>
 
 ## 📤 Exporting Your Data
 
@@ -46,7 +50,7 @@ sharing or analysis.\
 - Choose a date range\
 - Your data will be saved as an Excel file
 
-------------------------------------------------------------------------
+<br>
 
 ## 🔧 Settings & Controls
 
@@ -55,7 +59,7 @@ sharing or analysis.\
 -   **Clear Data** -- Easily reset your stored history if needed.\
 -   **Tray Menu** -- Right-click the tray icon for quick access.
 
-------------------------------------------------------------------------
+<br>
 
 ## 💡 Why ZenSlice?
 
@@ -66,7 +70,14 @@ It helps you:\
 ✔ Track healthy screen habits\
 ✔ Stay mindful of digital wellbeing
 
-------------------------------------------------------------------------
+| Feature | Benefit |
+|---------|---------|
+| No Cloud Storage | Keeps your usage data private and local |
+| Clean Dashboard | Makes tracking your screen habits effortless |
+| Excel Export | Helps you analyze or archive your data with ease |
+| Lightweight | Uses minimal system resources and runs unobtrusively |
+
+<br>
 
 ## 📌 Support
 
@@ -74,8 +85,8 @@ It helps you:\
     [Issues](../../issues) tab.\
 -   For feature requests, please share your ideas with us!
 
-------------------------------------------------------------------------
+<br>
 
 ## 📜 License
 
-ZenSlice is distributed under the **MIT License**.
+ZenSlice is distributed under the **Apache License**.
