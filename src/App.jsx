@@ -33,8 +33,8 @@ const theme = createTheme({
 
 function App() {
   useEffect(() => {
-  const style = document.createElement("style");
-  style.innerHTML = `
+    const style = document.createElement("style");
+    style.innerHTML = `
     @font-face {
       font-family: 'Pineapple Grass';
       src: url('${process.env.PUBLIC_URL}/fonts/Pineapple_Grass.ttf') format('truetype');
@@ -59,17 +59,16 @@ function App() {
       cursor: url('${process.env.PUBLIC_URL}/cursors/cursor.png'), auto !important;
     }
   `;
-  document.head.appendChild(style);
+    document.head.appendChild(style);
 
-  if (!window.api) {
-    console.warn("Electron API not available - running in development mode");
-  }
+    if (!window.api) {
+      console.warn("Electron API not available - running in development mode");
+    }
 
-  return () => {
-    document.head.removeChild(style);
-  };
-}, []);
-
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   const handleReload = () => window.location.reload();
   const handleMinimize = () => window.api?.minimizeApp();
@@ -95,21 +94,30 @@ function App() {
             alignItems: "center",
             width: "100%",
             height: "40px",
-            backgroundColor: "#EBBC7C",
+            backgroundColor: "rgba(235, 188, 124, 0.8)", // semi-transparent
+            backdropFilter: "blur(8px)", // glass blur
+            WebkitBackdropFilter: "blur(8px)", // Safari support
             color: "#fff",
             p: "0 16px",
-            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-            WebkitAppRegion: "drag", // This makes the header draggable
+            boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+            WebkitAppRegion: "drag",
+            position: "sticky",
+            top: 0,
+            zIndex: 1100,
+            borderBottom: "1px solid rgba(90, 74, 66, 0.3)", // thin divider
           }}
         >
-          <Typography variant="h6" sx={{ color: "#5A4A42" }}>
+          <Typography
+            variant="h6"
+            sx={{ color: "#5A4A42", fontWeight: "600", letterSpacing: "0.5px" }}
+          >
             ZenSlice
           </Typography>
           <Box
             sx={{
               display: "flex",
               gap: "8px",
-              WebkitAppRegion: "no-drag", // Buttons stay clickable
+              WebkitAppRegion: "no-drag",
             }}
           >
             <img

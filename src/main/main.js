@@ -133,10 +133,10 @@ ipcMain.handle("get-usage-data", async () => {
     return db
       .prepare(
         `
-      SELECT app_name, exe_path, SUM(duration) as duration 
-      FROM usage 
-      WHERE date = ? 
-      GROUP BY app_name, exe_path 
+      SELECT app_name, exe_path, SUM(duration) as duration
+      FROM usage
+      WHERE date = ?
+      GROUP BY app_name, exe_path
       ORDER BY duration DESC
     `
       )
@@ -165,10 +165,10 @@ ipcMain.handle("get-weekly-screen-time", async () => {
     return db
       .prepare(
         `
-      SELECT date, SUM(duration) as duration 
-      FROM pc_active_time 
-      WHERE date >= date('now', '-28 days') 
-      GROUP BY date 
+      SELECT date, SUM(duration) as duration
+      FROM pc_active_time
+      WHERE date >= date('now', '-28 days')
+      GROUP BY date
       ORDER BY date ASC
     `
       )
@@ -197,9 +197,9 @@ ipcMain.handle("get-usage-by-date", async (event, date) => {
     return db
       .prepare(
         `
-      SELECT app_name, exe_path, duration 
-      FROM usage 
-      WHERE date = ? 
+      SELECT app_name, exe_path, duration
+      FROM usage
+      WHERE date = ?
       ORDER BY duration DESC
     `
       )

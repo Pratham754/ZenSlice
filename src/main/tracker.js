@@ -56,9 +56,13 @@ function initDb() {
   conn.close();
 }
 
+// Local YYYY-MM-DD date (timezone aware)
+function getLocalDateKey() {
+  return new Date().toLocaleDateString("en-CA");
+}
+
 async function getActiveWindowInfo() {
   try {
-    // Use dynamic import for ESM package
     const activeWin = await import("active-win");
     const result = await activeWin.default();
 
@@ -69,9 +73,8 @@ async function getActiveWindowInfo() {
     const procName = result.owner.name.toLowerCase();
     const exePath = result.owner.path;
 
-    // Check if the process is from a temporary directory
     if (exePath.toLowerCase().startsWith(TEMP_DIR)) {
-      console.warn(`[tracker] Ignoring temporary process: ${exePath}`);
+      console.warn(`[Tracker] Ignoring temporary process: ${exePath}`);
       return { appName: null, exePath: null, pid: null };
     }
 
@@ -122,24 +125,22 @@ function trackUsage() {
 
   let lastAppKey = null;
   let lastSwitchTime = Date.now();
-  let lastDay = new Date().toISOString().split("T")[0];
+  let lastDay = getLocalDateKey();
 
-  // Track usage in intervals
   const intervalId = setInterval(async () => {
     try {
       const now = Date.now();
-      const currentDay = new Date().toISOString().split("T")[0];
+      const currentDay = getLocalDateKey();
 
       // Handle midnight transition
       if (currentDay !== lastDay) {
-        // Commit all pending usage for the previous day
+        console.log(`[Tracker] Midnight rollover: ${lastDay} → ${currentDay}`);
         for (const [key, duration] of usageTimeMap.entries()) {
           const [appName, exePath] = key.split("|");
           updateAppUsage(conn, appName, exePath, lastDay, duration);
         }
         updatePcScreenTime(conn, lastDay, pcTimeCounter);
 
-        // Reset for the new day
         usageTimeMap.clear();
         pcTimeCounter = 0;
         lastDay = currentDay;
@@ -152,6 +153,7 @@ function trackUsage() {
         exePath: newPath,
         pid: newPid,
       } = await getActiveWindowInfo();
+
       const newKey = newApp && newPath ? `${newApp}|${newPath}` : null;
 
       if (newKey !== lastAppKey) {
@@ -165,8 +167,8 @@ function trackUsage() {
         lastAppKey = newKey;
       }
 
+      // Commit every 10 seconds
       if (now - lastCommitTime >= 10000) {
-        // 10 seconds
         for (const [key, duration] of usageTimeMap.entries()) {
           const [appName, exePath] = key.split("|");
           updateAppUsage(conn, appName, exePath, currentDay, duration);
@@ -182,9 +184,8 @@ function trackUsage() {
     } catch (error) {
       console.error("[Tracker] Error in tracking loop:", error);
     }
-  }, 1000); // Check every second
+  }, 1000);
 
-  // Return the interval ID so it can be cleared later
   return intervalId;
 }
 
