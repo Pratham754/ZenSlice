@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Tray, Menu, dialog } = require("electron");
+const { app, BrowserWindow, ipcMain, Tray, Menu, dialog, shell } = require("electron");
 const path = require("path");
 const { setAutoStart } = require("./autoStart");
 const { setupAutoUpdate } = require("./updater");
@@ -130,6 +130,9 @@ app.on("before-quit", () => {
   }
 });
 
+// IPC: Get app version
+ipcMain.handle("get-app-version", () => app.getVersion());
+
 // IPC: Get total screen-on time
 ipcMain.handle("get-pc-screen-time", async () => {
   return getTodayScreenTime();
@@ -216,4 +219,8 @@ ipcMain.on("close-app", () => {
   if (mainWindow) {
     mainWindow.close();
   }
+});
+
+ipcMain.on("open-external", (event, url) => {
+  shell.openExternal(url);
 });

@@ -1,7 +1,7 @@
 // src/main/updater.js
-// Auto-update handler using electron-updater
+// Auto-update checker (GitHub redirect version)
 
-const { app, ipcMain, dialog } = require("electron");
+const { ipcMain } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const log = require("electron-log");
 
@@ -14,47 +14,51 @@ let mainWindow = null;
 function setupAutoUpdate(window) {
   mainWindow = window;
 
-  // Check for updates on app start
-  autoUpdater.checkForUpdatesAndNotify();
+  // Disable automatic downloading
+  autoUpdater.autoDownload = false;
 
-  // Listen for update events
+  // Check for updates when app starts
+  autoUpdater.checkForUpdates();
+
+  // ----------------------------
+  // Update available
+  // ----------------------------
   autoUpdater.on("update-available", (info) => {
     console.log("[Updater] New version available:", info.version);
+
     if (mainWindow) {
       mainWindow.webContents.send("update-available", info);
     }
   });
 
-  autoUpdater.on("update-downloaded", (info) => {
-    console.log("[Updater] Update downloaded:", info.version);
-    if (mainWindow) {
-      mainWindow.webContents.send("update-downloaded", info);
-    }
+  // ----------------------------
+  // No update available
+  // ----------------------------
+  autoUpdater.on("update-not-available", (info) => {
+    console.log("[Updater] No updates available. Latest:", info.version);
   });
 
-  autoUpdater.on("error", (error) => {
-    console.error("[Updater] Error:", error);
-  });
-
+  // ----------------------------
+  // Checking
+  // ----------------------------
   autoUpdater.on("checking-for-update", () => {
     console.log("[Updater] Checking for updates...");
   });
 
-  autoUpdater.on("update-not-available", (info) => {
-    console.log("[Updater] No updates available. Latest version: ", info.version);
+  // ----------------------------
+  // Errors
+  // ----------------------------
+  autoUpdater.on("error", (error) => {
+    console.error("[Updater] Error:", error);
   });
 }
 
-// IPC handler to install updates and restart
-ipcMain.on("quitAndInstall", () => {
-  autoUpdater.quitAndInstall();
-});
-
-// IPC handler to check for updates manually
+// -----------------------------------
+// IPC: Manual check for updates
+// -----------------------------------
 ipcMain.handle("check-for-updates", async () => {
   try {
-    const result = await autoUpdater.checkForUpdates();
-    return result;
+    return await autoUpdater.checkForUpdates();
   } catch (error) {
     console.error("[Updater] Error checking for updates:", error);
     return null;

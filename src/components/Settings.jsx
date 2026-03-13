@@ -1,8 +1,19 @@
-import React, { useContext } from "react";
-import { Card, CardContent, Typography, Box, Divider, Button, FormControl, Select, MenuItem, InputLabel, useTheme } from "@mui/material";
+import React, { useEffect, useState } from "react";
+import {
+  Card,
+  CardContent,
+  Typography,
+  Box,
+  Divider,
+  Button
+} from "@mui/material";
 import { ThemeContext } from "../ThemeContext";
 
 function Settings() {
+  const [version, setVersion] = useState("");
+  useEffect(() => {
+    window.api.getAppVersion().then(setVersion);
+  }, []);
 
   const handleExportData = async () => {
     try {
@@ -31,7 +42,7 @@ function Settings() {
   const handleClearData = async () => {
     if (
       window.confirm(
-        "Are you sure you want to clear all usage data? This action cannot be undone."
+        "Are you sure you want to clear all usage data? This action cannot be undone.",
       )
     ) {
       try {
@@ -143,7 +154,7 @@ function Settings() {
               color="textSecondary"
               sx={{ color: "#5A4A42" }}
             >
-              Version: 1.0.1
+              Version: {version}
             </Typography>
             <Typography
               variant="body2"
