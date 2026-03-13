@@ -1,108 +1,223 @@
-# 🌿 ZenSlice  
-*Your personal digital wellbeing companion*
+# 🌿 ZenSlice
+
+### Digital Wellbeing for Your PC
 
 <p align="center">
-  <img src="https://media.discordapp.net/attachments/1352992454177067091/1409246093924896810/banner.png?ex=68acae33&is=68ab5cb3&hm=7d359b7d2b12d685e39dc7527cbddec4489ad13ef1c633ece1c1594075c3b125&=&format=webp&quality=lossless" alt="ZenSlice Dashboard" width="700" style="border-radius: 8px; border:25px solid black;"/>
+  <img src="https://github.com/Pratham754/ZenSlice/blob/main/banner.png?raw=true"/>
 </p>
 
 <p align="center">
-  <b>Track. Reflect. Balance.</b><br/>
-  ZenSlice helps you understand your screen habits with beautiful dashboards & total privacy.
+<b>Track. Reflect. Balance.</b><br>
+ZenSlice is a privacy-focused desktop application that helps you understand and improve your digital habits through detailed screen-time insights and elegant visual dashboards.
 </p>
 
-<br><br>
+---
 
-## ✨ Features
+# Overview
 
--   ⏱ **Screen Time Tracking** -- See how long your PC has been active
-    each day.\
--   📊 **App Usage Insights** -- Know exactly how much time you spend on
-    each app.\
--   📅 **Weekly & Daily Dashboards** -- Visualize your habits with
-    interactive charts.\
--   📂 **Data Export** -- Export your usage data to Excel for personal
-    analysis.\
--   🔒 **Privacy First** -- Your data stays **on your device only**.\
--   ⚡ **Runs in Background** -- Lightweight, auto-starts with your
-    system.
+ZenSlice provides real-time insights into how you spend time on your computer. By monitoring active applications and system activity, it enables users to visualize their screen habits and make more mindful decisions about their digital wellbeing.
 
-<br>
+Unlike many productivity trackers, ZenSlice operates entirely **offline** and stores all usage data locally on your device.
 
-## 🚀 Getting Started
+The platform is designed to be:
 
-1.  **Download ZenSlice**
-    -   Head to the [Releases](../../releases) page and grab the latest
-        installer for Windows.
-2.  **Install & Launch**
-    -   Run the installer and ZenSlice will appear in your system tray.\
-    -   Click the tray icon anytime to open the dashboard.
-3.  **Explore Your Dashboard**
-    -   View **daily app usage**, **weekly summaries**, and insights
-        into your habits.
+* **Lightweight**
+* **Privacy-respecting**
+* **Visually intuitive**
+* **Highly performant**
 
-<br>
+---
 
-## 📤 Exporting Your Data
+# Key Features
 
-ZenSlice allows you to export your tracked data into **Excel** for easy
-sharing or analysis.\
-- Go to **Settings → Export Data**\
-- Choose a date range\
-- Your data will be saved as an Excel file
+### ⏱ Screen Time Tracking
 
-<br>
+Monitor your computer's daily active usage time and gain a clearer understanding of how long you spend on your device.
 
-## 🔧 Settings & Controls
+### 📊 Application Usage Insights
 
--   **Auto Start** -- ZenSlice launches automatically when your computer
-    boots.\
--   **Clear Data** -- Easily reset your stored history if needed.\
--   **Tray Menu** -- Right-click the tray icon for quick access.
+See how much time is spent in each application with detailed usage breakdowns.
 
-<br>
+### 📅 Weekly & Daily Dashboards
 
-## 💡 Why ZenSlice?
+Interactive charts allow you to explore your habits over time and identify trends.
 
-Unlike typical productivity trackers, ZenSlice focuses on **simplicity
-and privacy**.\
-It helps you:\
-✔ Identify distractions\
-✔ Track healthy screen habits\
-✔ Stay mindful of digital wellbeing
+### 📂 Excel Data Export
 
-| Feature | Benefit |
-|---------|---------|
-| No Cloud Storage | Keeps your usage data private and local |
-| Clean Dashboard | Makes tracking your screen habits effortless |
-| Excel Export | Helps you analyze or archive your data with ease |
-| Lightweight | Uses minimal system resources and runs unobtrusively |
+Export your activity data to structured Excel reports for personal analysis or record keeping.
 
-<br>
+### 🔒 Privacy-First Architecture
 
-## 📸 Screenhots
+All activity data is stored locally on your device. ZenSlice does **not upload or transmit usage data** to external servers.
 
-#### 📊 Weekly Screen Time Dashboard – See your daily averages and weekly totals at a glance.
-<img src="https://media.discordapp.net/attachments/1352992454177067091/1409247734745272502/Screenshot_2025-08-24_222254.png?ex=68acafba&is=68ab5e3a&hm=4af38f693e1581b6ea1099ac13d0514d71aefdf972f520c097619af9ff71ea8a&=&format=webp&quality=lossless&width=807&height=693" alt="ZenSlice Dashboard" width="500"/><br>
+### ⚡ Lightweight Background Tracking
 
-#### 🍩 App Usage Distribution – Visual breakdown of which apps take up most of your time.
-<img src="https://media.discordapp.net/attachments/1352992454177067091/1409247735596716254/Screenshot_2025-08-24_223532.png?ex=68acafba&is=68ab5e3a&hm=16a05f9b044228e24180c0e4ffcf9370732e0a8815e3235e94d20e2754ac5bc9&=&format=webp&quality=lossless&width=807&height=371" alt="ZenSlice Dashboard" width="500"/><br>
+ZenSlice runs silently in the background with minimal CPU and memory usage.
 
-#### 📋 Daily App Usage Details – Track exactly how much time you spent on each app.
-<img src="https://media.discordapp.net/attachments/1352992454177067091/1409247735319625838/Screenshot_2025-08-24_223541.png?ex=68acafba&is=68ab5e3a&hm=73ea1236145ce28b33d4561bd2c0f79b84ca5c63d25458dfbaa90b50add039ab&=&format=webp&quality=lossless&width=807&height=691" alt="ZenSlice Dashboard" width="500"/><br>
+### 🔄 Automatic Updates
 
-#### ⚙️ Settings Panel – Manage auto-start, clear your history, and export data to Excel.
-<img src="https://media.discordapp.net/attachments/1352992454177067091/1409247735026159788/Screenshot_2025-08-24_223550.png?ex=68acafba&is=68ab5e3a&hm=a686a6c046c6cd7bdeb3e1b524a271cb680411e342cc48f4eb24cde5c508c5de&=&format=webp&quality=lossless&width=807&height=469" alt="ZenSlice Dashboard" width="500"/>
+ZenSlice can automatically check for and install new versions to ensure users always run the latest improvements.
 
-<br>
+---
 
-## 📌 Support
+# Screenshots
 
--   Found a bug? Have suggestions? Open an issue in the
-    [Issues](../../issues) tab.\
--   For feature requests, please share your ideas with us!
+### Weekly Screen Time Dashboard
 
-<br>
+See daily averages and weekly totals at a glance.
 
-## 📜 License
+<img src="https://github.com/Pratham754/ZenSlice-Release/raw/main/images/Screenshot%202025-08-24%20222254.png" width="500"/>
 
-ZenSlice is distributed under the **Apache License**.
+---
+
+### App Usage Distribution
+
+Visual breakdown of which applications consume most of your time.
+
+<img src="https://github.com/Pratham754/ZenSlice-Release/raw/main/images/Screenshot%202025-08-24%20223532.png" width="500"/>
+
+---
+
+### Daily App Usage Details
+
+Track exactly how much time you spend in each application.
+
+<img src="https://github.com/Pratham754/ZenSlice-Release/raw/main/images/Screenshot%202025-08-24%20223541.png" width="500"/>
+
+---
+
+### Settings Panel
+
+Configure application behavior and export usage data.
+
+<img src="https://github.com/Pratham754/ZenSlice-Release/raw/main/images/Screenshot%202025-08-24%20223550.png" width="500"/>
+
+---
+
+# Installation
+
+## Download
+
+1. Navigate to the **Releases** page
+2. Download the latest Windows installer
+<p align="center">
+  <a href="https://github.com/Pratham754/ZenSlice-Release/releases/latest">
+    <img src="https://img.shields.io/badge/Download_ZenSlice_v1.0.1-0078D4?style=for-the-badge&logo=windows&logoColor=white" />
+  </a>
+</p>
+
+```
+ZenSlice-x.x.x-x64.exe
+```
+
+## Install
+
+Run the installer and follow the setup instructions.
+Once installed, ZenSlice will automatically start and run in the system tray.
+
+Click the tray icon to open the dashboard.
+
+---
+
+# Exporting Usage Data
+
+ZenSlice allows exporting screen-time analytics as Excel reports.
+
+Steps:
+
+1. Open **Settings**
+2. Select **Export Data**
+3. Choose the desired date range
+4. Save the generated `.xlsx` file
+
+Generated reports include:
+
+* Summary statistics
+* Application usage breakdown
+* Daily screen-time totals
+
+---
+
+# Application Architecture
+
+ZenSlice is built using modern desktop application technologies.
+
+### Core Stack
+
+| Layer             | Technology       |
+| ----------------- | ---------------- |
+| Desktop Framework | Electron         |
+| UI Framework      | React            |
+| Database          | SQLite           |
+| Charts            | Recharts         |
+| Packaging         | electron-builder |
+
+### Internal Modules
+
+```
+src/
+ ├── components/     UI components and dashboards
+ ├── main/           Electron main process logic
+ ├── utils/          Shared utility modules
+ └── preload.js      Secure IPC bridge
+```
+
+### Data Storage
+
+ZenSlice stores usage data locally in a SQLite database located in the user's application data directory.
+
+```
+<UserData>/ZenSlice/usage_data.db
+```
+
+---
+
+# Privacy & Security
+
+ZenSlice was designed with privacy as a core principle.
+
+• No telemetry
+• No analytics tracking
+• No cloud data storage
+• No external API communication
+
+All collected data remains **exclusively on the user's device**.
+
+---
+
+# Contributing
+
+Contributions are welcome.
+
+If you would like to improve ZenSlice:
+
+1. Fork the repository
+2. Create a feature branch
+3. Submit a pull request
+
+Bug reports and feature suggestions can be submitted via the **Issues** section.
+
+---
+
+# Roadmap
+
+Future development goals include:
+
+* Focus mode and productivity timers
+* App usage limits
+* Smart notifications for excessive screen time
+* Long-term productivity analytics
+* Cross-platform support (macOS & Linux)
+
+---
+
+# License
+
+ZenSlice is distributed under the **Apache License 2.0**.
+
+---
+
+# Maintainer
+
+**Pratham Choudhary**
+Creator & Maintainer of ZenSlice

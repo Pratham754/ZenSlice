@@ -1,7 +1,9 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { ThemeProvider, createTheme, Box, Typography } from "@mui/material";
 import CssBaseline from "@mui/material/CssBaseline";
 import Dashboard from "./components/Dashboard";
+import UpdateNotification from "./components/UpdateNotification";
+import "./index.css"; // Global styles now in separate CSS file
 
 const theme = createTheme({
   typography: {
@@ -15,7 +17,12 @@ const theme = createTheme({
       main: "#34d399",
     },
     background: {
-      default: "#f8fafc",
+      default: "#FFDDC4",     // Custom warm beige
+      paper: "#FFF8F0",       // Light cream
+    },
+    text: {
+      primary: "#5A4A42",     // Dark brown
+      secondary: "#EBBC7C",   // Golden accent
     },
   },
   components: {
@@ -32,44 +39,6 @@ const theme = createTheme({
 });
 
 function App() {
-  useEffect(() => {
-    const style = document.createElement("style");
-    style.innerHTML = `
-    @font-face {
-      font-family: 'Pineapple Grass';
-      src: url('${process.env.PUBLIC_URL}/fonts/Pineapple_Grass.ttf') format('truetype');
-      font-weight: normal;
-      font-style: normal;
-      font-display: swap;
-    }
-
-    * {
-      font-family: 'Pineapple Grass', 'Montserrat', 'Poppins', sans-serif !important;
-      cursor: url('${process.env.PUBLIC_URL}/cursors/cursor.png'), auto !important;
-      user-select: none !important;
-      -webkit-user-select: none !important;
-    }
-
-    button, a, [role="button"], input, textarea, select {
-      cursor: url('${process.env.PUBLIC_URL}/cursors/cursor.png'), auto !important;
-    }
-
-    /* Optional: Prevent text inputs from falling back to text cursor */
-    input, textarea {
-      cursor: url('${process.env.PUBLIC_URL}/cursors/cursor.png'), auto !important;
-    }
-  `;
-    document.head.appendChild(style);
-
-    if (!window.api) {
-      console.warn("Electron API not available - running in development mode");
-    }
-
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
-
   const handleReload = () => window.location.reload();
   const handleMinimize = () => window.api?.minimizeApp();
   const handleClose = () => window.api?.closeApp();
@@ -83,7 +52,7 @@ function App() {
           display: "flex",
           flexDirection: "column",
           minHeight: "100vh",
-          backgroundColor: "#FFDDC4",
+          backgroundColor: theme.palette.background.default,
         }}
       >
         {/* Header Bar */}
@@ -94,9 +63,9 @@ function App() {
             alignItems: "center",
             width: "100%",
             height: "40px",
-            backgroundColor: "rgba(235, 188, 124, 0.8)", // semi-transparent
-            backdropFilter: "blur(8px)", // glass blur
-            WebkitBackdropFilter: "blur(8px)", // Safari support
+            backgroundColor: `${theme.palette.text.secondary}CC`,
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
             color: "#fff",
             p: "0 16px",
             boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
@@ -104,12 +73,12 @@ function App() {
             position: "sticky",
             top: 0,
             zIndex: 1100,
-            borderBottom: "1px solid rgba(90, 74, 66, 0.3)", // thin divider
+            borderBottom: "1px solid rgba(90, 74, 66, 0.3)",
           }}
         >
           <Typography
             variant="h6"
-            sx={{ color: "#5A4A42", fontWeight: "600", letterSpacing: "0.5px" }}
+            sx={{ color: theme.palette.text.primary, fontWeight: "600", letterSpacing: "0.5px" }}
           >
             ZenSlice
           </Typography>
@@ -127,13 +96,13 @@ function App() {
               onClick={handleReload}
             />
             <img
-              src={`${process.env.PUBLIC_URL}/buttons/minimize.jpeg`}
+              src={`${process.env.PUBLIC_URL}/buttons/minimize.png`}
               alt="Minimize"
               style={{ width: "24px", height: "24px", cursor: "pointer" }}
               onClick={handleMinimize}
             />
             <img
-              src={`${process.env.PUBLIC_URL}/buttons/cross.jpeg`}
+              src={`${process.env.PUBLIC_URL}/buttons/cross.png`}
               alt="Close"
               style={{ width: "24px", height: "24px", cursor: "pointer" }}
               onClick={handleClose}
@@ -143,6 +112,9 @@ function App() {
 
         {/* Main Dashboard */}
         <Dashboard />
+
+        {/* Update Notification */}
+        <UpdateNotification />
       </Box>
     </ThemeProvider>
   );

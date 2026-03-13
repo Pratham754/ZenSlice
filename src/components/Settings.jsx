@@ -1,14 +1,9 @@
-import React from "react";
-import {
-  Card,
-  CardContent,
-  Typography,
-  Box,
-  Divider,
-  Button,
-} from "@mui/material";
+import React, { useContext } from "react";
+import { Card, CardContent, Typography, Box, Divider, Button, FormControl, Select, MenuItem, InputLabel, useTheme } from "@mui/material";
+import { ThemeContext } from "../ThemeContext";
 
 function Settings() {
+
   const handleExportData = async () => {
     try {
       let startDate = await window.api.getEarliestDate();
@@ -148,7 +143,7 @@ function Settings() {
               color="textSecondary"
               sx={{ color: "#5A4A42" }}
             >
-              Version: 1.0.0
+              Version: 1.0.1
             </Typography>
             <Typography
               variant="body2"

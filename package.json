@@ -1,93 +1,98 @@
 {
-  "name": "zenslice",
-  "version": "1.0.0",
-  "description": "A digital wellbeing app for tracking screen time and app usage",
-  "homepage": "./",
-  "main": "src/main/main.js",
-  "author": "Pratham Choudhary",
-  "scripts": {
-    "react": "react-scripts start",
-    "electron": "electron .",
-    "start": "concurrently \"npm run react\" \"wait-on http://localhost:3000 && npm run electron\"",
-    "build-react": "react-scripts build",
-    "build": "npm run build-react && electron-builder",
-    "postinstall": "electron-builder install-app-deps",
-    "dev": "concurrently \"npm run react\" \"wait-on http://localhost:3000 && npm run electron\""
-  },
-  "dependencies": {
-    "@emotion/react": "^11.11.1",
-    "@emotion/styled": "^11.11.0",
-    "@mui/material": "^5.14.19",
-    "active-win": "^8.0.0",
-    "better-sqlite3": "^11.10.0",
-    "electron-log": "^5.0.0-beta.16",
-    "electron-squirrel-startup": "^1.0.1",
-    "exceljs": "^4.4.0",
-    "extract-file-icon": "^0.3.2",
-    "ps-list": "^8.0.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "recharts": "^2.8.0",
-    "xlsx": "^0.18.5"
-  },
-  "devDependencies": {
-    "concurrently": "^8.2.2",
-    "electron": "^28.1.0",
-    "electron-builder": "^24.9.1",
-    "react-scripts": "^5.0.1",
-    "wait-on": "^7.0.1"
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
-  "license": "Apache-2.0",
-  "build": {
-    "extends": null,
-    "appId": "com.pittisso.ZenSlice",
-    "productName": "ZenSlice",
-    "copyright": "Copyright © 2023 Pratham Choudhary",
-    "asar": true,
-    "compression": "maximum",
-    "directories": {
-      "output": "release"
+    "name": "zenslice",
+    "version": "1.0.1",
+    "description": "A digital wellbeing app for tracking screen time and app usage",
+    "homepage": "./",
+    "main": "src/main/main.js",
+    "author": "Pratham Choudhary",
+    "scripts": {
+        "react": "react-scripts start",
+        "electron": "electron .",
+        "start": "concurrently \"npm run react\" \"wait-on http://localhost:3000 && npm run electron\"",
+        "build-react": "react-scripts build",
+        "build": "npm run build-react && electron-builder",
+        "postinstall": "electron-builder install-app-deps",
+        "dev": "concurrently \"npm run react\" \"wait-on http://localhost:3000 && npm run electron\""
     },
-    "files": [
-      "build/**/*",
-      "src/main/**/*",
-      "src/utils/**/*",
-      "logo.ico",
-      "public/fonts/**/*",
-      "public/buttons/**/*",
-      "public/cursors/**/*"
-    ],
-    "extraResources": [
-      {
-        "from": "public/fonts",
-        "to": "fonts"
-      }
-    ],
-    "win": {
-      "target": "nsis",
-      "icon": "logo.ico",
-      "publisherName": "Pratham Choudhary",
-      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    "dependencies": {
+        "@emotion/react": "^11.11.1",
+        "@emotion/styled": "^11.11.0",
+        "@mui/material": "^5.14.19",
+        "active-win": "^8.0.0",
+        "better-sqlite3": "^11.10.0",
+        "electron-log": "^5.0.0-beta.16",
+        "electron-squirrel-startup": "^1.0.1",
+        "electron-updater": "^6.1.1",
+        "exceljs": "^4.4.0",
+        "ps-list": "^8.0.0",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+        "recharts": "^2.8.0",
+        "xlsx": "^0.18.5"
     },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "ZenSlice"
+    "devDependencies": {
+        "concurrently": "^8.2.2",
+        "electron": "^28.1.0",
+        "electron-builder": "^24.9.1",
+        "react-scripts": "^5.0.1",
+        "wait-on": "^7.0.1"
+    },
+    "browserslist": {
+        "production": [
+            ">0.2%",
+            "not dead",
+            "not op_mini all"
+        ],
+        "development": [
+            "last 1 chrome version",
+            "last 1 firefox version",
+            "last 1 safari version"
+        ]
+    },
+    "license": "Apache-2.0",
+    "build": {
+        "extends": null,
+        "appId": "com.pittisso.ZenSlice",
+        "productName": "ZenSlice",
+        "copyright": "Copyright © 2023 Pratham Choudhary",
+        "asar": true,
+        "compression": "maximum",
+        "publish": {
+            "provider": "github",
+            "owner": "Pratham754",
+            "repo": "ZenSlice-Release"
+        },
+        "directories": {
+            "output": "release"
+        },
+        "files": [
+            "build/**/*",
+            "src/main/**/*",
+            "src/utils/**/*",
+            "logo.ico",
+            "public/fonts/**/*",
+            "public/buttons/**/*",
+            "public/cursors/**/*"
+        ],
+        "extraResources": [
+            {
+                "from": "public/fonts",
+                "to": "fonts"
+            }
+        ],
+        "win": {
+            "target": "nsis",
+            "icon": "logo.ico",
+            "publisherName": "Pratham Choudhary",
+            "artifactName": "${productName}-${version}-${arch}.${ext}"
+        },
+        "nsis": {
+            "oneClick": false,
+            "perMachine": false,
+            "allowToChangeInstallationDirectory": true,
+            "createDesktopShortcut": true,
+            "createStartMenuShortcut": true,
+            "shortcutName": "ZenSlice"
+        }
     }
-  }
 }

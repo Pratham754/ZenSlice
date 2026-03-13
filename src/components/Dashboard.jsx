@@ -1,87 +1,47 @@
 // Dashboard.jsx
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
-  Card,
-  Typography,
-  Grid,
-  List,
-  ListItem,
-  LinearProgress,
-  Avatar,
-  Divider,
-  Box,
+    Card,
+    Typography,
+    Grid,
+    List,
+    ListItem,
+    LinearProgress,
+    Avatar,
+    Divider,
+    Box,
+    useTheme,
 } from "@mui/material";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    Tooltip,
+    PieChart,
+    Pie,
+    Cell,
+    ResponsiveContainer,
 } from "recharts";
 import Settings from "./Settings";
+import { getLocalDateKey } from "../utils/dateUtils";
 
 const COLORS = [
-  "#FF9D4A", "#E66782", "#F5E0A7", "#96C0CE",
-  "#6B5854", "#AB8EAD", "#FFC94A", "#A3D9B5",
-  "#FFB2A3", "#8C72A0", "#C4E4F1", "#E078A1",
+    "#FF9D4A", "#E66782", "#F5E0A7", "#96C0CE",
+    "#6B5854", "#AB8EAD", "#FFC94A", "#A3D9B5",
+    "#FFB2A3", "#8C72A0", "#C4E4F1", "#E078A1",
 ];
 const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const formatTime = (total) => {
-  if (!total || isNaN(total)) return "0m";
-  const hours = Math.floor(total / 3600);
-  const minutes = Math.floor((total % 3600) / 60);
-  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+    if (!total || isNaN(total)) return "0m";
+    const hours = Math.floor(total / 3600);
+    const minutes = Math.floor((total % 3600) / 60);
+    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 };
 
-// --- NEW: same local key function as tracker ---
-function getLocalDateKey(d = new Date()) {
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
-    .toISOString()
-    .split("T")[0];
-}
-
-function formatWeeklyData(rawData) {
-  const map = {};
-  rawData.forEach(({ date, duration }) => {
-    const key = getLocalDateKey(new Date(date));
-    const day = new Date(key).getDay(); // now safe
-    const name = weekdays[(day + 6) % 7];
-    map[name] = (map[name] || 0) + duration;
-  });
-  return weekdays.map((day) => ({ name: day, duration: map[day] || 0 }));
-}
-
-function formatWeekLabel(offset) {
-  const now = new Date();
-  const dow = now.getDay();
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - ((dow + 6) % 7) + offset * 7);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  const options = { month: "short", day: "numeric" };
-  return `${monday.toLocaleDateString("en-US", options)} - ${sunday.toLocaleDateString("en-US", options)}`;
-}
-
-export default function Dashboard() {
-  const [dataState, setDataState] = useState({
-    weeklyData: [],
-    rawWeeklyData: [],
-    dailyAppUsage: [],
-    icons: {},
-    totalScreenTime: 0,
-  });
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [weekOffset, setWeekOffset] = useState(0);
-
-  const fetchWeeklyData = useCallback(async () => {
-    const data = await window.api?.getWeeklyPCScreenTime?.();
-    if (!Array.isArray(data)) return;
-
+function formatWeeklyData(rawData, weekOffset = 0) {
+    const map = {};
     const now = new Date();
     const dow = now.getDay();
     const monday = new Date(now);
@@ -92,216 +52,330 @@ export default function Dashboard() {
     sunday.setDate(monday.getDate() + 6);
     sunday.setHours(23, 59, 59, 999);
 
-    const filtered = data.filter(({ date }) => {
-      const localKey = getLocalDateKey(new Date(date));
-      const d = new Date(localKey);
-      return d >= monday && d <= sunday;
+    rawData.forEach(({ date, duration }) => {
+        const localKey = getLocalDateKey(new Date(date));
+        const d = new Date(localKey);
+        if (d >= monday && d <= sunday) {
+            const day = d.getDay();
+            const name = weekdays[(day + 6) % 7];
+            map[name] = (map[name] || 0) + duration;
+        }
     });
+    return weekdays.map((day) => ({ name: day, duration: map[day] || 0 }));
+}
 
-    setDataState((prev) => ({
-      ...prev,
-      rawWeeklyData: filtered,
-      weeklyData: formatWeeklyData(filtered),
-    }));
+function formatWeekLabel(offset) {
+    const now = new Date();
+    const dow = now.getDay();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - ((dow + 6) % 7) + offset * 7);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    const options = { month: "short", day: "numeric" };
+    return `${monday.toLocaleDateString("en-US", options)} - ${sunday.toLocaleDateString("en-US", options)}`;
+}
 
-    if (!selectedDate && filtered.length > 0) {
-      setSelectedDate(getLocalDateKey(new Date())); // default to today
-    }
-  }, [weekOffset, selectedDate]);
+export default function Dashboard() {
+    const theme = useTheme(); // Use consolidated theme colors
+    const [dataState, setDataState] = useState({
+        weeklyData: [],
+        rawWeeklyData: [],
+        dailyAppUsage: [],
+        icons: {},
+        totalScreenTime: 0,
+    });
+    const [selectedDate, setSelectedDate] = useState(null);
+    const [weekOffset, setWeekOffset] = useState(0);
 
-  const fetchDailyData = useCallback(async () => {
-    if (!selectedDate) return;
-    const apps = await window.api?.getUsageByDate?.(selectedDate);
-    const uptime = await window.api?.getPCScreenTimeByDate?.(selectedDate);
+    const fetchWeeklyData = useCallback(async () => {
+        const data = await window.api?.getAllHistoricalData?.();
+        if (!Array.isArray(data)) return;
 
-    if (Array.isArray(apps)) {
-      setDataState((prev) => ({ ...prev, dailyAppUsage: apps }));
-    }
-    if (uptime?.[0]) {
-      setDataState((prev) => ({
-        ...prev,
-        totalScreenTime: uptime[0].duration || 0,
-      }));
-    }
-  }, [selectedDate]);
-
-  useEffect(() => {
-    fetchWeeklyData();
-    fetchDailyData();
-  }, [fetchWeeklyData, fetchDailyData]);
-
-  useEffect(() => {
-    dataState.dailyAppUsage.forEach(({ exe_path }) => {
-      if (exe_path && !dataState.icons[exe_path]) {
-        window.api?.getAppIconByExe(exe_path).then((base64Icon) => {
-          setDataState((prev) => ({
+        setDataState((prev) => ({
             ...prev,
-            icons: {
-              ...prev.icons,
-              [exe_path]: base64Icon ? `data:image/png;base64,${base64Icon}` : null,
-            },
-          }));
+            rawWeeklyData: data,
+            weeklyData: formatWeeklyData(data, weekOffset),
+        }));
+
+        if (!selectedDate && data.length > 0) {
+            setSelectedDate(getLocalDateKey(new Date())); // default to today
+        }
+    }, [weekOffset, selectedDate]);
+
+    const fetchDailyData = useCallback(async () => {
+        if (!selectedDate) return;
+        const apps = await window.api?.getUsageByDate?.(selectedDate);
+        const uptime = await window.api?.getPCScreenTimeByDate?.(selectedDate);
+
+        if (Array.isArray(apps)) {
+            setDataState((prev) => ({ ...prev, dailyAppUsage: apps }));
+        }
+        if (uptime?.[0]) {
+            setDataState((prev) => ({
+                ...prev,
+                totalScreenTime: uptime[0].duration || 0,
+            }));
+        }
+    }, [selectedDate]);
+
+    useEffect(() => {
+        fetchWeeklyData();
+        fetchDailyData();
+        // Listen for real-time IPC updates from the tracker
+        const cleanup = window.api?.onUsageUpdated?.(() => fetchDailyData());
+        return cleanup;
+    }, [fetchWeeklyData, fetchDailyData]);
+
+    // Fix React State Thrashing: Batch Icon Fetching with Promise.all
+    useEffect(() => {
+        const fetchIcons = async () => {
+            const missingIcons = dataState.dailyAppUsage.filter(
+                app => app.exe_path && !dataState.icons[app.exe_path]
+            );
+            if (missingIcons.length === 0) return;
+
+            // Fetch all icons concurrently instead of one by one
+            const results = await Promise.all(
+                missingIcons.map(app => window.api?.getAppIconByExe(app.exe_path))
+            );
+
+            // Single state update with all icons at once
+            setDataState(prev => {
+                const newIcons = { ...prev.icons };
+                missingIcons.forEach((app, idx) => {
+                    newIcons[app.exe_path] = results[idx]
+                        ? `data:image/png;base64,${results[idx]}`
+                        : null;
+                });
+                return { ...prev, icons: newIcons };
+            });
+        };
+        fetchIcons();
+    }, [dataState.dailyAppUsage]);
+
+    const pieData = useMemo(() => {
+        const totalMinutes = dataState.totalScreenTime / 60;
+        if (totalMinutes === 0) return [];
+        const thresholdPercent = 3;
+        let othersTotal = 0;
+        const visibleApps = [];
+
+        dataState.dailyAppUsage.forEach(({ app_name, duration }) => {
+            const minutes = duration / 60;
+            const percent = (minutes / totalMinutes) * 100;
+            if (percent >= thresholdPercent) {
+                visibleApps.push({ name: app_name, value: Math.round(minutes) });
+            } else {
+                othersTotal += minutes;
+            }
         });
-      }
-    });
-  }, [dataState.dailyAppUsage, dataState.icons]);
 
-  const pieData = useMemo(() => {
-    const totalMinutes = dataState.totalScreenTime / 60;
-    if (totalMinutes === 0) return [];
-    const thresholdPercent = 3;
-    let othersTotal = 0;
-    const visibleApps = [];
+        if (othersTotal > 0) {
+            visibleApps.push({ name: "Others", value: Math.round(othersTotal) });
+        }
+        return visibleApps.sort((a, b) => b.value - a.value);
+    }, [dataState.dailyAppUsage, dataState.totalScreenTime]);
 
-    dataState.dailyAppUsage.forEach(({ app_name, duration }) => {
-      const minutes = duration / 60;
-      const percent = (minutes / totalMinutes) * 100;
-      if (percent >= thresholdPercent) {
-        visibleApps.push({ name: app_name, value: Math.round(minutes) });
-      } else {
-        othersTotal += minutes;
-      }
-    });
+    const totalWeekly = dataState.weeklyData.reduce((s, d) => s + d.duration, 0);
+    const activeDays = dataState.weeklyData.filter(d => d.duration > 0).length || 1;
+    const dailyAvg = Math.floor(totalWeekly / activeDays);
 
-    if (othersTotal > 0) {
-      visibleApps.push({ name: "Others", value: Math.round(othersTotal) });
-    }
-    return visibleApps.sort((a, b) => b.value - a.value);
-  }, [dataState.dailyAppUsage, dataState.totalScreenTime]);
+    return (
+        <Box p={3} sx={{ backgroundColor: theme.palette.background.default, minHeight: "100vh" }}>
+            {/* Top stats */}
+            <Grid container spacing={2} mb={1}>
+                {[
+                    { label: "Weekly Total", value: formatTime(totalWeekly) },
+                    { label: "Daily Average", value: formatTime(dailyAvg) },
+                    { label: "Active Apps", value: dataState.dailyAppUsage.length },
+                ].map((stat, i) => (
+                    <Grid item xs={12} sm={4} key={i}>
+                        <Card sx={{ padding: "1rem", textAlign: "center", backgroundColor: theme.palette.background.paper }}>
+                            <Typography variant="subtitle2" sx={{ color: theme.palette.text.primary }}>{stat.label}</Typography>
+                            <Typography variant="h5" sx={{ color: theme.palette.text.secondary, fontWeight: "bold" }}>{stat.value}</Typography>
+                        </Card>
+                    </Grid>
+                ))}
+            </Grid>
 
-  const totalWeekly = dataState.rawWeeklyData.reduce((s, d) => s + d.duration, 0);
-  const dailyAvg = dataState.rawWeeklyData.length ? Math.floor(totalWeekly / dataState.rawWeeklyData.length) : 0;
+            {/* Weekly & pie charts */}
+            <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                    <Card sx={{ padding: "1rem", backgroundColor: theme.palette.background.paper }}>
+                        <Typography variant="h6" sx={{ color: theme.palette.text.primary, mb: 2 }}>
+                            Weekly Screen Time
+                        </Typography>
+                        <ResponsiveContainer width="100%" height={200}>
+                            <BarChart data={dataState.weeklyData}>
+                                <XAxis dataKey="name" />
+                                <YAxis tickFormatter={(v) => `${Math.floor(v / 3600)}h`} />
+                                <Tooltip formatter={(v) => {
+                                    const hours = Math.floor(v / 3600);
+                                    const mins = Math.floor((v % 3600) / 60);
+                                    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+                                }} />
+                                <Bar
+                                    dataKey="duration"
+                                    fill={theme.palette.text.secondary}
+                                    radius={[6, 6, 0, 0]}
+                                    onClick={(e) => {
+                                        const now = new Date();
+                                        const dow = now.getDay();
+                                        const monday = new Date(now);
+                                        monday.setDate(now.getDate() - ((dow + 6) % 7) + weekOffset * 7);
+                                        const dayIndex = weekdays.indexOf(e.name);
+                                        const date = new Date(monday);
+                                        date.setDate(monday.getDate() + dayIndex);
+                                        setSelectedDate(getLocalDateKey(date));
+                                    }}
+                                />
+                            </BarChart>
+                        </ResponsiveContainer>
 
-  return (
-    <Box p={3} sx={{ backgroundColor: "#FFDDC4", minHeight: "100vh" }}>
-      {/* Top stats */}
-      <Grid container spacing={2} mb={1}>
-        {[
-          { label: "Weekly Total", value: formatTime(totalWeekly) },
-          { label: "Daily Average", value: formatTime(dailyAvg) },
-          { label: "Active Apps", value: dataState.dailyAppUsage.length },
-        ].map((stat, i) => (
-          <Grid item xs={12} sm={4} key={i}>
-            <Card sx={{ padding: "1rem", textAlign: "center", backgroundColor: "#FFF8F0" }}>
-              <Typography variant="subtitle2" sx={{ color: "#5A4A42" }}>{stat.label}</Typography>
-              <Typography variant="h5" sx={{ color: "#EBBC7C", fontWeight: "bold" }}>{stat.value}</Typography>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
+                        {/* Themed Navigation Arrows */}
+                        <Typography align="center" mt={1} sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: theme.palette.text.primary
+                        }}>
+                            <span
+                                style={{
+                                    cursor: "pointer",
+                                    margin: "0 1rem",
+                                    fontSize: "3rem", // Tripled size
+                                    lineHeight: 0,
+                                    verticalAlign: "middle",
+                                    display: "inline-block",
+                                    color: theme.palette.text.secondary,
+                                    transition: "transform 0.2s ease",
+                                    userSelect: "none"
+                                }}
+                                onMouseEnter={(e) => (e.target.style.transform = "scale(1.2)")}
+                                onMouseLeave={(e) => (e.target.style.transform = "scale(1)")}
+                                onClick={() => {
+                                    const prevWeekStart = new Date();
+                                    prevWeekStart.setDate(prevWeekStart.getDate() + (weekOffset - 1) * 7);
+                                    // Check if earliestDate exists before using it
+                                    if (typeof earliestDate === 'undefined' || prevWeekStart >= earliestDate) {
+                                        setWeekOffset((p) => p - 1);
+                                    }
+                                }}
+                            >
+                                ⬅
+                            </span>
 
-      {/* Weekly & pie charts */}
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={6}>
-          <Card sx={{ padding: "1rem", backgroundColor: "#FFF8F0" }}>
-            <Typography variant="h6" sx={{ color: "#5A4A42", mb: 2 }}>Weekly Screen Time</Typography>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={dataState.weeklyData}>
-                <XAxis dataKey="name" />
-                <YAxis tickFormatter={(v) => `${Math.floor(v / 3600)}h`} />
-                <Tooltip formatter={(v) => formatTime(v)} />
-                <Bar
-                  dataKey="duration"
-                  fill="#EBBC7C"
-                  radius={[6, 6, 0, 0]}
-                  onClick={(e) => {
-                    const match = dataState.rawWeeklyData.find(
-                      (d) => weekdays[(new Date(getLocalDateKey(new Date(d.date))).getDay() + 6) % 7] === e.name
-                    );
-                    if (match?.date) setSelectedDate(getLocalDateKey(new Date(match.date)));
-                  }}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-            <Typography align="center" mt={1} sx={{ color: "#5A4A42" }}>
-              <span style={{ cursor: "pointer", margin: "0 1rem", color: "#EBBC7C" }}
-                onClick={() => setWeekOffset((p) => p - 1)}>⬅</span>
-              {formatWeekLabel(weekOffset)}
-              <span style={{
-                cursor: weekOffset === 0 ? "not-allowed" : "pointer",
-                margin: "0 1rem",
-                color: weekOffset === 0 ? "#999" : "#EBBC7C",
-              }} onClick={() => weekOffset === 0 ? null : setWeekOffset((p) => p + 1)}>➡</span>
-            </Typography>
-          </Card>
-        </Grid>
+                            <Box component="span" sx={{ minWidth: '150px' }}>
+                                {formatWeekLabel(weekOffset)}
+                            </Box>
 
-        <Grid item xs={12} md={6}>
-          <Card sx={{ padding: "1rem", backgroundColor: "#FFF8F0" }}>
-            <Typography variant="h6" sx={{ color: "#5A4A42" }}>App Distribution</Typography>
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie
-                  dataKey="value"
-                  data={pieData}
-                  cx="50%" cy="50%"
-                  outerRadius={70}
-                  innerRadius={50}
-                  label={({ name }) => name}
-                  labelLine={false}
-                >
-                  {pieData.map((_, idx) => <Cell key={idx} fill={COLORS[idx % COLORS.length]} />)}
-                </Pie>
-                <Tooltip formatter={(v) => `${v} mins`} />
-              </PieChart>
-            </ResponsiveContainer>
-            <Typography align="center" sx={{ color: "#5A4A42" }}>
-              Today: {formatTime(dataState.totalScreenTime)}
-            </Typography>
-          </Card>
-        </Grid>
-      </Grid>
+                            <span
+                                style={{
+                                    cursor: weekOffset === 0 ? "not-allowed" : "pointer",
+                                    margin: "0 1rem",
+                                    fontSize: "3rem", // Tripled size
+                                    lineHeight: 0,
+                                    verticalAlign: "middle",
+                                    display: "inline-block",
+                                    color: weekOffset === 0 ? "#ccc" : theme.palette.text.secondary,
+                                    transition: "transform 0.2s ease",
+                                    userSelect: "none"
+                                }}
+                                onMouseEnter={(e) => {
+                                    if (weekOffset !== 0) e.target.style.transform = "scale(1.2)";
+                                }}
+                                onMouseLeave={(e) => (e.target.style.transform = "scale(1)")}
+                                onClick={() => {
+                                    if (weekOffset === 0) return;
+                                    setWeekOffset((p) => p + 1);
+                                }}
+                            >
+                                ➡
+                            </span>
+                        </Typography>
+                    </Card>
+                </Grid>
 
-      {/* Daily list */}
-      <Grid item xs={12} mt={3}>
-        <Card sx={{ padding: "2rem", backgroundColor: "#FFF8F0" }}>
-          <Typography variant="h6" mb={2} sx={{ color: "#5A4A42" }}>
-            Your Screen Time for {selectedDate ? new Date(selectedDate).toDateString() : "Today"}
-          </Typography>
-          {dataState.dailyAppUsage.length === 0 ? (
-            <Typography sx={{ color: "#5A4A42" }}>No app usage data found for this day.</Typography>
-          ) : (
-            <List>
-              {dataState.dailyAppUsage.map((entry, idx) => {
-                const percent = (entry.duration / dataState.totalScreenTime) * 100;
-                return (
-                  <div key={idx}>
-                    <ListItem>
-                      <Avatar
-                        src={dataState.icons[entry.exe_path] || undefined}
-                        alt={entry.app_name}
-                        sx={{ width: 32, height: 32, mr: 2 }}
-                      >
-                        {entry.app_name.charAt(0)}
-                      </Avatar>
-                      <Box flex={1}>
-                        <Typography sx={{ color: "#5A4A42" }}>{entry.app_name}</Typography>
-                        <LinearProgress
-                          variant="determinate"
-                          value={percent}
-                          sx={{
-                            height: 6,
-                            borderRadius: 5,
-                            mt: 0.5,
-                            backgroundColor: "rgba(235, 188, 124, 0.3)",
-                            "& .MuiLinearProgress-bar": { backgroundColor: "#EBBC7C" },
-                          }}
-                        />
-                      </Box>
-                      <Typography ml={2} sx={{ color: "#5A4A42", fontWeight: "bold" }}>
-                        {formatTime(entry.duration)}
-                      </Typography>
-                    </ListItem>
-                    <Divider />
-                  </div>
-                );
-              })}
-            </List>
-          )}
-        </Card>
-      </Grid>
+                <Grid item xs={12} md={6}>
+                    <Card sx={{ padding: "1rem", backgroundColor: theme.palette.background.paper }}>
+                        <Typography variant="h6" sx={{ color: theme.palette.text.primary }}>App Distribution</Typography>
+                        <ResponsiveContainer width="100%" height={200}>
+                            <PieChart>
+                                <Pie
+                                    dataKey="value"
+                                    data={pieData}
+                                    cx="50%" cy="50%"
+                                    outerRadius={70}
+                                    innerRadius={50}
+                                    label={({ name }) => name}
+                                    labelLine={false}
+                                >
+                                    {pieData.map((_, idx) => <Cell key={idx} fill={COLORS[idx % COLORS.length]} />)}
+                                </Pie>
+                                <Tooltip formatter={(v) => {
+                                    const hours = Math.floor(v / 60);
+                                    const mins = v % 60;
+                                    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+                                }} />
+                            </PieChart>
+                        </ResponsiveContainer>
+                        <Typography align="center" sx={{ color: theme.palette.text.primary }}>
+                            {selectedDate === getLocalDateKey(new Date()) ? "Today" : new Date(selectedDate).toDateString()}: {formatTime(dataState.totalScreenTime)}
+                        </Typography>
+                    </Card>
+                </Grid>
+            </Grid>
 
-      <Grid item xs={12} mt={2}><Settings /></Grid>
-    </Box>
-  );
+            {/* Daily list */}
+            <Grid item xs={12} mt={3}>
+                <Card sx={{ padding: "2rem", backgroundColor: theme.palette.background.paper }}>
+                    <Typography variant="h6" mb={2} sx={{ color: theme.palette.text.primary }}>
+                        Your Screen Time for {selectedDate ? new Date(selectedDate).toDateString() : "Today"}
+                    </Typography>
+                    {dataState.dailyAppUsage.length === 0 ? (
+                        <Typography sx={{ color: theme.palette.text.primary }}>No app usage data found for this day.</Typography>
+                    ) : (
+                        <List>
+                            {dataState.dailyAppUsage.map((entry, idx) => {
+                                const percent = (entry.duration / dataState.totalScreenTime) * 100;
+                                return (
+                                    <div key={idx}>
+                                        <ListItem>
+                                            <Avatar
+                                                src={dataState.icons[entry.exe_path] || undefined}
+                                                alt={entry.app_name}
+                                                sx={{ width: 32, height: 32, mr: 2 }}
+                                            >
+                                                {entry.app_name.charAt(0)}
+                                            </Avatar>
+                                            <Box flex={1}>
+                                                <Typography sx={{ color: theme.palette.text.primary }}>{entry.app_name}</Typography>
+                                                <LinearProgress
+                                                    variant="determinate"
+                                                    value={percent}
+                                                    sx={{
+                                                        height: 6,
+                                                        borderRadius: 5,
+                                                        mt: 0.5,
+                                                        backgroundColor: `${theme.palette.text.secondary}33`,
+                                                        "& .MuiLinearProgress-bar": { backgroundColor: theme.palette.text.secondary },
+                                                    }}
+                                                />
+                                            </Box>
+                                            <Typography ml={2} sx={{ color: theme.palette.text.primary, fontWeight: "bold" }}>
+                                                {formatTime(entry.duration)}
+                                            </Typography>
+                                        </ListItem>
+                                        <Divider />
+                                    </div>
+                                );
+                            })}
+                        </List>
+                    )}
+                </Card>
+            </Grid>
+
+            <Grid item xs={12} mt={2}><Settings /></Grid>
+        </Box>
+    );
 }

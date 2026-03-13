@@ -1,0 +1,26 @@
+/* src/index.css */
+/* Centralized global styles */
+
+@font-face {
+  font-family: 'Pineapple Grass';
+  src: url('./fonts/Pineapple_Grass.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+* {
+  font-family: 'Pineapple Grass', 'Montserrat', 'Poppins', sans-serif !important;
+  cursor: url('./cursors/cursor.png'), auto !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

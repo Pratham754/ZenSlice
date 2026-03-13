@@ -1,10 +1,11 @@
 const { app, BrowserWindow, ipcMain, Tray, Menu, dialog } = require("electron");
 const path = require("path");
-const Database = require("better-sqlite3");
 const { setAutoStart } = require("./autoStart");
+const { setupAutoUpdate } = require("./updater");
 const fs = require("fs");
-const { trackUsage, DB_FILE } = require("./tracker");
-const { exportDataAsExcel } = require("../utils/dbUtils");
+const { trackUsage } = require("./tracker");
+const { getTodayUsageData, getTodayScreenTime, getWeeklyScreenTime, getAllHistoricalData, getScreenTimeByDate, getUsageByDate, exportDataAsExcel } = require("../utils/dbUtils");
+const db = require("../utils/dbInstance");
 const XLSX = require("xlsx");
 
 // Handle squirrel events, which are common for Windows installers
@@ -22,6 +23,22 @@ const isDev = !app.isPackaged;
 let mainWindow;
 let tray = null;
 let trackerInterval = null;
+
+// Prevent multiple instances of the app
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    // Someone tried to run a second instance, we should focus our window.
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+      mainWindow.show();
+    }
+  });
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -93,6 +110,9 @@ app.whenReady().then(() => {
   // Set auto-start to be true whenever the app is launched
   setAutoStart(true);
   createWindow();
+
+  // Setup auto-updater (checks for updates in background)
+  setupAutoUpdate(mainWindow);
 });
 
 app.on("window-all-closed", () => {
@@ -106,44 +126,18 @@ app.on("activate", () => {
 app.on("before-quit", () => {
   app.isQuiting = true;
   if (trackerInterval) {
-    clearInterval(trackerInterval);
+    trackerInterval(); // Call the cleanup function from recursive setTimeout
   }
 });
 
 // IPC: Get total screen-on time
 ipcMain.handle("get-pc-screen-time", async () => {
-  const today = new Date().toISOString().slice(0, 10);
-  const db = new Database(DB_FILE, { readonly: true });
-  try {
-    return db
-      .prepare(
-        "SELECT SUM(duration) as duration FROM pc_active_time WHERE date = ?"
-      )
-      .all(today);
-  } finally {
-    db.close();
-  }
+  return getTodayScreenTime();
 });
 
 // IPC: Get app usage breakdown
 ipcMain.handle("get-usage-data", async () => {
-  const today = new Date().toISOString().slice(0, 10);
-  const db = new Database(DB_FILE, { readonly: true });
-  try {
-    return db
-      .prepare(
-        `
-      SELECT app_name, exe_path, SUM(duration) as duration
-      FROM usage
-      WHERE date = ?
-      GROUP BY app_name, exe_path
-      ORDER BY duration DESC
-    `
-      )
-      .all(today);
-  } finally {
-    db.close();
-  }
+  return getTodayUsageData();
 });
 
 // IPC: Get app icon from executable
@@ -160,53 +154,22 @@ ipcMain.handle("get-app-icon-by-exe", async (event, exePath) => {
 
 // IPC: Weekly screen time
 ipcMain.handle("get-weekly-screen-time", async () => {
-  const db = new Database(DB_FILE, { readonly: true });
-  try {
-    return db
-      .prepare(
-        `
-      SELECT date, SUM(duration) as duration
-      FROM pc_active_time
-      WHERE date >= date('now', '-28 days')
-      GROUP BY date
-      ORDER BY date ASC
-    `
-      )
-      .all();
-  } finally {
-    db.close();
-  }
+  return getWeeklyScreenTime();
+});
+
+// IPC: All historical screen time data
+ipcMain.handle("get-all-historical-data", async () => {
+  return getAllHistoricalData();
 });
 
 // IPC: Screen time by specific date
 ipcMain.handle("get-screen-time-by-date", async (event, date) => {
-  const db = new Database(DB_FILE, { readonly: true });
-  try {
-    return db
-      .prepare(`SELECT duration FROM pc_active_time WHERE date = ?`)
-      .all(date);
-  } finally {
-    db.close();
-  }
+  return getScreenTimeByDate(date);
 });
 
 // IPC: App usage by specific date
 ipcMain.handle("get-usage-by-date", async (event, date) => {
-  const db = new Database(DB_FILE, { readonly: true });
-  try {
-    return db
-      .prepare(
-        `
-      SELECT app_name, exe_path, duration
-      FROM usage
-      WHERE date = ?
-      ORDER BY duration DESC
-    `
-      )
-      .all(date);
-  } finally {
-    db.close();
-  }
+  return getUsageByDate(date);
 });
 
 // IPC: Export data as Excel
@@ -232,14 +195,14 @@ ipcMain.handle("export-data-excel", async (event, { startDate, endDate }) => {
 });
 
 ipcMain.handle("get-earliest-date", async () => {
-  const db = new Database(DB_FILE, { readonly: true });
   try {
     const row = db
       .prepare("SELECT MIN(date) as earliest FROM pc_active_time")
       .get();
     return row?.earliest || null;
-  } finally {
-    db.close();
+  } catch (error) {
+    console.error("[main] Error getting earliest date:", error);
+    return null;
   }
 });
 

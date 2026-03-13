@@ -4,98 +4,50 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 console.log("✅ Preload script loaded");
 
+// Reusable IPC wrapper to reduce code duplication
+const safeInvoke = async (channel, fallback, ...args) => {
+  try {
+    return await ipcRenderer.invoke(channel, ...args);
+  } catch (error) {
+    console.error(`❌ IPC Error on ${channel}:`, error);
+    return fallback;
+  }
+};
+
 contextBridge.exposeInMainWorld("api", {
   // Window control functions
-  minimizeApp: () => {
-    try {
-      ipcRenderer.send("minimize-app");
-    } catch (e) {
-      console.error("Failed to minimize window:", e);
-    }
+  minimizeApp: () => ipcRenderer.send("minimize-app"),
+  closeApp: () => ipcRenderer.send("close-app"),
+
+  // Data fetching functions
+  getUsageData: () => safeInvoke("get-usage-data", []),
+  getPCScreenTime: () => safeInvoke("get-pc-screen-time", []),
+  getAppIconByExe: (exePath) => safeInvoke("get-app-icon-by-exe", null, exePath),
+  getWeeklyPCScreenTime: () => safeInvoke("get-weekly-screen-time", []),
+  getAllHistoricalData: () => safeInvoke("get-all-historical-data", []),
+  getPCScreenTimeByDate: (date) => safeInvoke("get-screen-time-by-date", [], date),
+  getUsageByDate: (date) => safeInvoke("get-usage-by-date", [], date),
+  exportDataExcel: (start, end) => safeInvoke("export-data-excel", { success: false }, { startDate: start, endDate: end }),
+  getEarliestDate: () => safeInvoke("get-earliest-date", null),
+
+  // Real-time listener for live updates
+  onUsageUpdated: (callback) => {
+    ipcRenderer.on("usage-updated", callback);
+    return () => ipcRenderer.removeAllListeners("usage-updated");
   },
 
-  closeApp: () => {
-    try {
-      ipcRenderer.send("close-app");
-    } catch (e) {
-      console.error("Failed to close window:", e);
-    }
+  // Update notifications
+  onUpdateAvailable: (callback) => {
+    ipcRenderer.on("update-available", callback);
+    return () => ipcRenderer.removeAllListeners("update-available");
   },
 
-  // Fetch usage data for each app
-  getUsageData: async () => {
-    try {
-      return await ipcRenderer.invoke("get-usage-data");
-    } catch (error) {
-      console.error("❌ Failed to get app usage data:", error);
-      return [];
-    }
+  onUpdateDownloaded: (callback) => {
+    ipcRenderer.on("update-downloaded", callback);
+    return () => ipcRenderer.removeAllListeners("update-downloaded");
   },
 
-  // Fetch total PC screen time
-  getPCScreenTime: async () => {
-    try {
-      return await ipcRenderer.invoke("get-pc-screen-time");
-    } catch (error) {
-      console.error("❌ Failed to get PC screen time:", error);
-      return [];
-    }
-  },
+  checkForUpdates: () => safeInvoke("check-for-updates", null),
 
-  getAppIconByExe: async (exePath) => {
-    try {
-      return await ipcRenderer.invoke("get-app-icon-by-exe", exePath);
-    } catch (e) {
-      console.error("Failed to get app icon by exe:", e);
-      return null;
-    }
-  },
-
-  getWeeklyPCScreenTime: async () => {
-    try {
-      return await ipcRenderer.invoke("get-weekly-screen-time");
-    } catch (e) {
-      console.error("Failed to fetch weekly screen time:", e);
-      return [];
-    }
-  },
-
-  getPCScreenTimeByDate: async (date) => {
-    try {
-      return await ipcRenderer.invoke("get-screen-time-by-date", date);
-    } catch (e) {
-      console.error("Failed to fetch screen time by date:", e);
-      return [];
-    }
-  },
-
-  getUsageByDate: async (date) => {
-    try {
-      return await ipcRenderer.invoke("get-usage-by-date", date);
-    } catch (e) {
-      console.t("Failed to fetch usage by date:", e);
-      return [];
-    }
-  },
-
-  exportDataExcel: async (start, end) => {
-    try {
-      return await ipcRenderer.invoke("export-data-excel", {
-        startDate: start,
-        endDate: end,
-      });
-    } catch (e) {
-      console.error("Failed to export data:", e);
-      return { success: false, error: e.message };
-    }
-  },
-
-  getEarliestDate: async () => {
-    try {
-      return await ipcRenderer.invoke("get-earliest-date");
-    } catch (e) {
-      console.error("Failed to fetch earliest date:", e);
-      return null;
-    }
-  },
+  quitAndInstall: () => ipcRenderer.send("quitAndInstall"),
 });

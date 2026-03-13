@@ -1,17 +1,9 @@
-const { app } = require("electron");
-const sqlite3 = require("better-sqlite3");
+const { app, BrowserWindow } = require("electron");
+const db = require("../utils/dbInstance"); // Shared WAL connection
 const path = require("path");
 const os = require("os");
 const { getIconForPid } = require("../utils/iconUtils");
-
-// Get a writable DB location
-function getDbPath() {
-  const dataDir = path.join(app.getPath("userData"), "ZenSlice");
-  require("fs").mkdirSync(dataDir, { recursive: true });
-  return path.join(dataDir, "usage_data.db");
-}
-
-const DB_FILE = getDbPath();
+const { getLocalDateKey } = require("../utils/dateUtils");
 
 // Processes to ignore (case-insensitive)
 const EXCLUDED_PROCESSES = new Set([
@@ -27,7 +19,6 @@ const EXCLUDED_PROCESSES = new Set([
   "applicationframehost.exe",
   "lockapp.exe",
   "searchhost.exe",
-  "applicationframehost.exe",
   "credential manager ui host",
   "application frame host",
   "windows start experience host",
@@ -37,29 +28,32 @@ const EXCLUDED_PROCESSES = new Set([
 const TEMP_DIR = os.tmpdir().toLowerCase();
 
 function initDb() {
-  const conn = sqlite3(DB_FILE);
-  conn.exec(`
-    CREATE TABLE IF NOT EXISTS usage (
-      app_name TEXT,
-      exe_path TEXT,
-      date TEXT,
-      duration INTEGER,
-      PRIMARY KEY (app_name, date)
-    )
-  `);
-  conn.exec(`
-    CREATE TABLE IF NOT EXISTS pc_active_time (
-      date TEXT PRIMARY KEY,
-      duration INTEGER
-    )
-  `);
-  conn.close();
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS usage (
+        app_name TEXT,
+        exe_path TEXT,
+        date TEXT,
+        duration INTEGER,
+        PRIMARY KEY (app_name, date)
+      )
+    `);
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS pc_active_time (
+        date TEXT PRIMARY KEY,
+        duration INTEGER
+      )
+    `);
+    console.log("[Tracker] Database initialized successfully");
+  } catch (error) {
+    console.error("[Tracker] Failed to initialize database:", error);
+    throw error;
+  }
 }
 
 // Local YYYY-MM-DD date (timezone aware)
-function getLocalDateKey() {
-  return new Date().toLocaleDateString("en-CA");
-}
+// Now using shared function from dateUtils
+// getLocalDateKey is imported from dateUtils
 
 async function getActiveWindowInfo() {
   try {
@@ -93,8 +87,8 @@ async function getActiveWindowInfo() {
   }
 }
 
-function updateAppUsage(conn, appName, exePath, dateStr, duration) {
-  const stmt = conn.prepare(`
+function updateAppUsage(appName, exePath, dateStr, duration) {
+  const stmt = db.prepare(`
     INSERT INTO usage (app_name, exe_path, date, duration)
     VALUES (?, ?, ?, ?)
     ON CONFLICT(app_name, date)
@@ -103,8 +97,8 @@ function updateAppUsage(conn, appName, exePath, dateStr, duration) {
   stmt.run(appName, exePath, dateStr, duration);
 }
 
-function updatePcScreenTime(conn, dateStr, seconds = 1) {
-  const stmt = conn.prepare(`
+function updatePcScreenTime(dateStr, seconds = 1) {
+  const stmt = db.prepare(`
     INSERT INTO pc_active_time (date, duration)
     VALUES (?, ?)
     ON CONFLICT(date)
@@ -117,8 +111,6 @@ function trackUsage() {
   initDb();
   console.log("[Tracker] Running...");
 
-  const conn = sqlite3(DB_FILE);
-
   const usageTimeMap = new Map();
   let pcTimeCounter = 0;
   let lastCommitTime = Date.now();
@@ -126,8 +118,9 @@ function trackUsage() {
   let lastAppKey = null;
   let lastSwitchTime = Date.now();
   let lastDay = getLocalDateKey();
+  let timerId = null;
 
-  const intervalId = setInterval(async () => {
+  const trackLoop = async () => {
     try {
       const now = Date.now();
       const currentDay = getLocalDateKey();
@@ -137,9 +130,9 @@ function trackUsage() {
         console.log(`[Tracker] Midnight rollover: ${lastDay} → ${currentDay}`);
         for (const [key, duration] of usageTimeMap.entries()) {
           const [appName, exePath] = key.split("|");
-          updateAppUsage(conn, appName, exePath, lastDay, duration);
+          updateAppUsage(appName, exePath, lastDay, duration);
         }
-        updatePcScreenTime(conn, lastDay, pcTimeCounter);
+        updatePcScreenTime(lastDay, pcTimeCounter);
 
         usageTimeMap.clear();
         pcTimeCounter = 0;
@@ -171,22 +164,36 @@ function trackUsage() {
       if (now - lastCommitTime >= 10000) {
         for (const [key, duration] of usageTimeMap.entries()) {
           const [appName, exePath] = key.split("|");
-          updateAppUsage(conn, appName, exePath, currentDay, duration);
+          updateAppUsage(appName, exePath, currentDay, duration);
         }
 
-        updatePcScreenTime(conn, currentDay, pcTimeCounter);
-
-        conn.pragma("optimize");
+        updatePcScreenTime(currentDay, pcTimeCounter);
+        db.pragma("optimize");
         usageTimeMap.clear();
         pcTimeCounter = 0;
         lastCommitTime = now;
+
+        // Notify frontend for live updates
+        BrowserWindow.getAllWindows().forEach(win => {
+          try {
+            win.webContents.send("usage-updated");
+          } catch (e) {
+            console.error("[Tracker] Failed to send usage-updated event:", e);
+          }
+        });
       }
     } catch (error) {
       console.error("[Tracker] Error in tracking loop:", error);
     }
-  }, 1000);
 
-  return intervalId;
+    // Recursive setTimeout prevents overlapping executions
+    timerId = setTimeout(trackLoop, 1000);
+  };
+
+  trackLoop();
+
+  // Return a cleanup function
+  return () => clearTimeout(timerId);
 }
 
 function getIconBase64ForPid(pid) {
@@ -200,5 +207,4 @@ function getIconBase64ForPid(pid) {
 module.exports = {
   trackUsage,
   getIconBase64ForPid,
-  DB_FILE,
 };
