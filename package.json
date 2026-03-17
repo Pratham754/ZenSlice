@@ -1,6 +1,6 @@
 {
     "name": "zenslice",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "A digital wellbeing app for tracking screen time and app usage",
     "homepage": "./",
     "main": "src/main/main.js",
