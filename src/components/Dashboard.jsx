@@ -26,7 +26,7 @@ import {
 import Settings from "./Settings";
 import { getLocalDateKey } from "../utils/dateUtils";
 
-const COLORS = [
+const DEFAULT_COLORS = [
     "#FF9D4A", "#E66782", "#F5E0A7", "#96C0CE",
     "#6B5854", "#AB8EAD", "#FFC94A", "#A3D9B5",
     "#FFB2A3", "#8C72A0", "#C4E4F1", "#E078A1",
@@ -77,6 +77,13 @@ function formatWeekLabel(offset) {
 
 export default function Dashboard() {
     const theme = useTheme(); // Use consolidated theme colors
+    const chartColors = theme.custom?.chartColors || DEFAULT_COLORS;
+    const chartTooltipStyle = {
+        backgroundColor: theme.palette.background.paper,
+        border: `1px solid ${theme.palette.text.secondary}`,
+        color: theme.palette.text.primary,
+        borderRadius: 8,
+    };
     const [dataState, setDataState] = useState({
         weeklyData: [],
         rawWeeklyData: [],
@@ -86,6 +93,17 @@ export default function Dashboard() {
     });
     const [selectedDate, setSelectedDate] = useState(null);
     const [weekOffset, setWeekOffset] = useState(0);
+    const [earliestDate, setEarliestDate] = useState(null);
+
+    useEffect(() => {
+        const fetchEarliestDate = async () => {
+            const earliest = await window.api?.getEarliestDate?.();
+            if (earliest) {
+                setEarliestDate(new Date(`${earliest}T00:00:00`));
+            }
+        };
+        fetchEarliestDate();
+    }, []);
 
     const fetchWeeklyData = useCallback(async () => {
         const data = await window.api?.getAllHistoricalData?.();
@@ -207,9 +225,21 @@ export default function Dashboard() {
                         </Typography>
                         <ResponsiveContainer width="100%" height={200}>
                             <BarChart data={dataState.weeklyData}>
-                                <XAxis dataKey="name" />
-                                <YAxis tickFormatter={(v) => `${Math.floor(v / 3600)}h`} />
-                                <Tooltip formatter={(v) => {
+                                <XAxis
+                                    dataKey="name"
+                                    tick={{ fill: theme.palette.text.primary }}
+                                    axisLine={{ stroke: theme.palette.text.secondary }}
+                                    tickLine={{ stroke: theme.palette.text.secondary }}
+                                />
+                                <YAxis
+                                    tickFormatter={(v) => `${Math.floor(v / 3600)}h`}
+                                    tick={{ fill: theme.palette.text.primary }}
+                                    axisLine={{ stroke: theme.palette.text.secondary }}
+                                    tickLine={{ stroke: theme.palette.text.secondary }}
+                                />
+                                <Tooltip
+                                    contentStyle={chartTooltipStyle}
+                                    formatter={(v) => {
                                     const hours = Math.floor(v / 3600);
                                     const mins = Math.floor((v % 3600) / 60);
                                     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
@@ -256,8 +286,7 @@ export default function Dashboard() {
                                 onClick={() => {
                                     const prevWeekStart = new Date();
                                     prevWeekStart.setDate(prevWeekStart.getDate() + (weekOffset - 1) * 7);
-                                    // Check if earliestDate exists before using it
-                                    if (typeof earliestDate === 'undefined' || prevWeekStart >= earliestDate) {
+                                    if (!earliestDate || prevWeekStart >= earliestDate) {
                                         setWeekOffset((p) => p - 1);
                                     }
                                 }}
@@ -277,7 +306,8 @@ export default function Dashboard() {
                                     lineHeight: 0,
                                     verticalAlign: "middle",
                                     display: "inline-block",
-                                    color: weekOffset === 0 ? "#ccc" : theme.palette.text.secondary,
+                                    color: theme.palette.text.secondary,
+                                    opacity: weekOffset === 0 ? 0.4 : 1,
                                     transition: "transform 0.2s ease",
                                     userSelect: "none"
                                 }}
@@ -310,9 +340,9 @@ export default function Dashboard() {
                                     label={({ name }) => name}
                                     labelLine={false}
                                 >
-                                    {pieData.map((_, idx) => <Cell key={idx} fill={COLORS[idx % COLORS.length]} />)}
+                                    {pieData.map((_, idx) => <Cell key={idx} fill={chartColors[idx % chartColors.length]} />)}
                                 </Pie>
-                                <Tooltip formatter={(v) => {
+                                <Tooltip contentStyle={chartTooltipStyle} formatter={(v) => {
                                     const hours = Math.floor(v / 60);
                                     const mins = v % 60;
                                     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;

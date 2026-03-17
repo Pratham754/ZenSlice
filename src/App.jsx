@@ -1,50 +1,18 @@
 import React from "react";
-import { ThemeProvider, createTheme, Box, Typography } from "@mui/material";
+import { Box, Typography, useTheme } from "@mui/material";
 import CssBaseline from "@mui/material/CssBaseline";
 import Dashboard from "./components/Dashboard";
 import UpdateNotification from "./components/UpdateNotification";
 import "./index.css"; // Global styles now in separate CSS file
 
-const theme = createTheme({
-  typography: {
-    fontFamily: `"Pineapple Grass", "Montserrat", "Poppins", sans-serif`,
-  },
-  palette: {
-    primary: {
-      main: "#60a5fa",
-    },
-    secondary: {
-      main: "#34d399",
-    },
-    background: {
-      default: "#FFDDC4",     // Custom warm beige
-      paper: "#FFF8F0",       // Light cream
-    },
-    text: {
-      primary: "#5A4A42",     // Dark brown
-      secondary: "#EBBC7C",   // Golden accent
-    },
-  },
-  components: {
-    MuiCard: {
-      styleOverrides: {
-        root: {
-          borderRadius: 12,
-          boxShadow:
-            "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-        },
-      },
-    },
-  },
-});
-
 function App() {
+  const theme = useTheme();
   const handleReload = () => window.location.reload();
   const handleMinimize = () => window.api?.minimizeApp();
   const handleClose = () => window.api?.closeApp();
 
   return (
-    <ThemeProvider theme={theme}>
+    <>
       <CssBaseline />
       <Box
         className="App"
@@ -116,7 +84,7 @@ function App() {
         {/* Update Notification */}
         <UpdateNotification />
       </Box>
-    </ThemeProvider>
+    </>
   );
 }
 

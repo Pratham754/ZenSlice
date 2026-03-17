@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
+import { CustomThemeProvider } from "./ThemeContext";
 
 function hideLoadingScreen() {
   const loading = document.getElementById("loading");
@@ -57,9 +58,11 @@ class ErrorBoundary extends React.Component {
 // Render the app with error boundary
 root.render(
   <React.StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
+    <CustomThemeProvider>
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    </CustomThemeProvider>
   </React.StrictMode>
 );
 hideLoadingScreen();

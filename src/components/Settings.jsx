@@ -1,15 +1,22 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   Card,
   CardContent,
   Typography,
   Box,
   Divider,
-  Button
+  Button,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  useTheme,
 } from "@mui/material";
 import { ThemeContext } from "../ThemeContext";
 
 function Settings() {
+  const theme = useTheme();
+  const { themeName, setThemeName, themesConfig } = useContext(ThemeContext);
   const [version, setVersion] = useState("");
   useEffect(() => {
     window.api.getAppVersion().then(setVersion);
@@ -58,18 +65,22 @@ function Settings() {
   return (
     <Box
       sx={{
-        backgroundColor: "#FFDDC4",
+        backgroundColor: theme.palette.background.default,
       }}
     >
       <Card
         sx={{
-          backgroundColor: "#FFF8F0",
+          backgroundColor: theme.palette.background.paper,
           borderRadius: "12px",
           boxShadow: "none",
         }}
       >
         <CardContent>
-          <Typography variant="h6" gutterBottom sx={{ color: "#5A4A42" }}>
+          <Typography
+            variant="h6"
+            gutterBottom
+            sx={{ color: theme.palette.text.primary }}
+          >
             Settings
           </Typography>
 
@@ -77,26 +88,53 @@ function Settings() {
             <Typography
               variant="subtitle1"
               gutterBottom
-              sx={{ color: "#5A4A42" }}
+              sx={{ color: theme.palette.text.primary }}
+            >
+              Theme
+            </Typography>
+            <FormControl fullWidth size="small">
+              <InputLabel id="theme-select-label">Select Theme</InputLabel>
+              <Select
+                labelId="theme-select-label"
+                value={themeName}
+                label="Select Theme"
+                onChange={(event) => setThemeName(event.target.value)}
+              >
+                {Object.entries(themesConfig).map(([key, config]) => (
+                  <MenuItem key={key} value={key}>
+                    {config.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+
+          <Divider sx={{ my: 2, borderColor: `${theme.palette.text.secondary}66` }} />
+
+          <Box sx={{ mb: 2 }}>
+            <Typography
+              variant="subtitle1"
+              gutterBottom
+              sx={{ color: theme.palette.text.primary }}
             >
               Start automatically when computer boots
             </Typography>
             <Typography
               variant="body2"
               color="textSecondary"
-              sx={{ mt: 0.5, color: "#5A4A42" }}
+              sx={{ mt: 0.5, color: theme.palette.text.primary }}
             >
               ZenSlice is configured to start automatically on login.
             </Typography>
           </Box>
 
-          <Divider sx={{ my: 2, borderColor: "#6B5854" }} />
+          <Divider sx={{ my: 2, borderColor: `${theme.palette.text.secondary}66` }} />
 
           <Box sx={{ mb: 2 }}>
             <Typography
               variant="subtitle1"
               gutterBottom
-              sx={{ color: "#5A4A42" }}
+              sx={{ color: theme.palette.text.primary }}
             >
               Data Management
             </Typography>
@@ -105,11 +143,11 @@ function Settings() {
               onClick={handleExportData}
               sx={{
                 mr: 2,
-                color: "#5A4A42",
-                borderColor: "#5A4A42",
+                color: theme.palette.text.primary,
+                borderColor: theme.palette.text.primary,
                 "&:hover": {
-                  borderColor: "#EBBC7C",
-                  backgroundColor: "rgba(235, 188, 124, 0.1)",
+                  borderColor: theme.palette.text.secondary,
+                  backgroundColor: `${theme.palette.text.secondary}1A`,
                 },
               }}
             >
@@ -120,11 +158,11 @@ function Settings() {
               color="error"
               onClick={handleClearData}
               sx={{
-                color: "#E66782",
-                borderColor: "#E66782",
+                color: theme.palette.error.main,
+                borderColor: theme.palette.error.main,
                 "&:hover": {
-                  borderColor: "#E66782",
-                  backgroundColor: "rgba(230, 103, 130, 0.1)",
+                  borderColor: theme.palette.error.main,
+                  backgroundColor: `${theme.palette.error.main}1A`,
                 },
               }}
             >
@@ -133,33 +171,33 @@ function Settings() {
             <Typography
               variant="body2"
               color="textSecondary"
-              sx={{ mt: 1, color: "#5A4A42" }}
+              sx={{ mt: 1, color: theme.palette.text.primary }}
             >
               Export your usage data as Excel or clear all stored information
             </Typography>
           </Box>
 
-          <Divider sx={{ my: 2, borderColor: "#6B5854" }} />
+          <Divider sx={{ my: 2, borderColor: `${theme.palette.text.secondary}66` }} />
 
           <Box>
             <Typography
               variant="subtitle1"
               gutterBottom
-              sx={{ color: "#5A4A42" }}
+              sx={{ color: theme.palette.text.primary }}
             >
               About ZenSlice
             </Typography>
             <Typography
               variant="body2"
               color="textSecondary"
-              sx={{ color: "#5A4A42" }}
+              sx={{ color: theme.palette.text.primary }}
             >
               Version: {version}
             </Typography>
             <Typography
               variant="body2"
               color="textSecondary"
-              sx={{ color: "#5A4A42" }}
+              sx={{ color: theme.palette.text.primary }}
             >
               A digital wellbeing app to track your screen time and app usage
             </Typography>
