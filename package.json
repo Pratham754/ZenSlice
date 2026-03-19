@@ -1,6 +1,6 @@
 {
     "name": "zenslice",
-    "version": "1.0.2",
+    "version": "1.0.1",
     "description": "A digital wellbeing app for tracking screen time and app usage",
     "homepage": "./",
     "main": "src/main/main.js",
@@ -84,6 +84,7 @@
             "target": "nsis",
             "icon": "logo.ico",
             "publisherName": "Pratham Choudhary",
+            "verifyUpdateCodeSignature": false,
             "artifactName": "${productName}-${version}-${arch}.${ext}"
         },
         "nsis": {
