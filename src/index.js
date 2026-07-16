@@ -3,26 +3,8 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import { CustomThemeProvider } from "./ThemeContext";
 
-function hideLoadingScreen() {
-  const loading = document.getElementById("loading");
-  const root = document.getElementById("root");
-
-  // This is the core logic: find the elements and change their display styles
-  if (loading && root) {
-    loading.style.display = "none";
-    root.style.display = "block";
-  }
-}
-
-// Create root element and render app
-const root = ReactDOM.createRoot(document.getElementById("root"));
-
-// Error boundary for better error handling
 class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
+  state = { hasError: false, error: null };
 
   static getDerivedStateFromError(error) {
     return { hasError: true, error };
@@ -35,28 +17,27 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div
-          style={{
-            padding: "2rem",
-            textAlign: "center",
-            fontFamily: "Arial, sans-serif",
-          }}
-        >
+        <div style={{ padding: "2rem", textAlign: "center", fontFamily: "Arial, sans-serif" }}>
           <h2>Something went wrong</h2>
           <p>Please restart the application.</p>
           <details style={{ whiteSpace: "pre-wrap", marginTop: "1rem" }}>
-            {this.state.error && this.state.error.toString()}
+            {this.state.error?.toString()}
           </details>
         </div>
       );
     }
-
     return this.props.children;
   }
 }
 
-// Render the app with error boundary
-root.render(
+const loading = document.getElementById("loading");
+const rootEl = document.getElementById("root");
+if (loading && rootEl) {
+  loading.style.display = "none";
+  rootEl.style.display = "block";
+}
+
+ReactDOM.createRoot(rootEl).render(
   <React.StrictMode>
     <CustomThemeProvider>
       <ErrorBoundary>
@@ -65,4 +46,3 @@ root.render(
     </CustomThemeProvider>
   </React.StrictMode>
 );
-hideLoadingScreen();

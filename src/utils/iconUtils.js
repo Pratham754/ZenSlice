@@ -1,138 +1,76 @@
 const { app } = require("electron");
 const path = require("path");
 const { mkdirSync } = require("fs");
-const fsPromises = require("fs/promises");
+const fs = require("fs/promises");
 const crypto = require("crypto");
 
-// Get a writable cache directory
 function getCacheDir() {
-    const cacheDir = path.join(app.getPath("userData"), "icon_cache");
-    mkdirSync(cacheDir, { recursive: true });
-    return cacheDir;
+  const dir = path.join(app.getPath("userData"), "icon_cache");
+  mkdirSync(dir, { recursive: true });
+  return dir;
 }
 
-/**
- * Extracts the icon from the executable path natively via Electron.
- */
 async function getIconFromExecutable(exePath, size = "normal") {
-    if (!exePath) {
-        return null;
-    }
+  if (!exePath) return null;
+  try { await fs.access(exePath); } catch { return null; }
 
-    // Check if file exists
-    try {
-        await fsPromises.access(exePath);
-    } catch {
-        return null;
-    }
+  const cacheDir = getCacheDir();
+  const cached = path.join(cacheDir, `${crypto.createHash("md5").update(exePath).digest("hex")}_${size}.png`);
 
-    const cacheDir = getCacheDir();
-    const hashName = crypto.createHash("md5").update(exePath).digest("hex");
-    const cachedPath = path.join(cacheDir, `${hashName}_${size}.png`);
+  try { return await fs.readFile(cached); } catch { /* cache miss */ }
 
-    // Return cached icon if it exists
-    try {
-        return await fsPromises.readFile(cachedPath);
-    } catch (error) {
-        // Cache miss, proceed to extract natively
-    }
-
-    try {
-        // Native Electron API call
-        const nativeImage = await app.getFileIcon(exePath, { size });
-        const pngBuffer = nativeImage.toPNG();
-
-        if (!pngBuffer || pngBuffer.length === 0) {
-            return null;
-        }
-
-        // Save the new icon to the cache
-        try {
-            await fsPromises.writeFile(cachedPath, pngBuffer);
-        } catch (writeError) {
-            console.error(`[iconUtils] Failed to cache icon: ${writeError}`);
-        }
-
-        return pngBuffer;
-    } catch (error) {
-        console.error(`[iconUtils] Native extraction failed for ${exePath}: ${error}`);
-        return null;
-    }
+  try {
+    const img = await app.getFileIcon(exePath, { size });
+    const buf = img.toPNG();
+    if (!buf?.length) return null;
+    fs.writeFile(cached, buf).catch((e) => console.error("[iconUtils] Cache write failed:", e));
+    return buf;
+  } catch (e) {
+    console.error("[iconUtils] Extraction failed:", exePath, e);
+    return null;
+  }
 }
 
 async function getIconForExe(exePath) {
-    try {
-        if (exePath) {
-            return await getIconFromExecutable(exePath);
-        }
-    } catch (error) {
-        console.error(`[iconUtils] Error getting icon for EXE ${exePath}: ${error}`);
-    }
-    return null;
+  try { return exePath ? await getIconFromExecutable(exePath) : null; }
+  catch (e) { console.error("[iconUtils] getIconForExe:", e); return null; }
 }
 
 async function getIconForPid(pid) {
-    try {
-        const psList = await import("ps-list");
-        const processes = await psList.default();
-        const process = processes.find((p) => p.pid === pid);
-
-        if (process && process.path) {
-            return await getIconFromExecutable(process.path);
-        }
-    } catch (error) {
-        console.error(`[iconUtils] Error getting icon for PID ${pid}: ${error}`);
-    }
+  try {
+    const psList = await import("ps-list");
+    const proc = (await psList.default()).find((p) => p.pid === pid);
+    return proc?.path ? await getIconFromExecutable(proc.path) : null;
+  } catch (e) {
+    console.error("[iconUtils] getIconForPid:", e);
     return null;
+  }
 }
 
 async function clearIconCache() {
-    try {
-        const cacheDir = getCacheDir();
-        const files = await fsPromises.readdir(cacheDir);
-        const pngFiles = files.filter((file) => file.endsWith(".png"));
-
-        await Promise.all(
-            pngFiles.map((file) => fsPromises.unlink(path.join(cacheDir, file)))
-        );
-
-        return true;
-    } catch (error) {
-        console.error("[iconUtils] Failed to clear icon cache:", error);
-        return false;
-    }
+  try {
+    const dir = getCacheDir();
+    const files = (await fs.readdir(dir)).filter((f) => f.endsWith(".png"));
+    await Promise.all(files.map((f) => fs.unlink(path.join(dir, f))));
+    return true;
+  } catch (e) {
+    console.error("[iconUtils] Clear cache failed:", e);
+    return false;
+  }
 }
 
 async function getCacheStats() {
-    try {
-        const cacheDir = getCacheDir();
-        const files = await fsPromises.readdir(cacheDir);
-        const pngFiles = files.filter((file) => file.endsWith(".png"));
-
-        let totalSize = 0;
-        for (const file of pngFiles) {
-            try {
-                const stats = await fsPromises.stat(path.join(cacheDir, file));
-                totalSize += stats.size;
-            } catch (error) {
-                // Skip files that can't be stat'd
-            }
-        }
-
-        return {
-            totalIcons: pngFiles.length,
-            totalSize: totalSize,
-            totalSizeMB: (totalSize / (1024 * 1024)).toFixed(2),
-        };
-    } catch (error) {
-        return { totalIcons: 0, totalSize: 0, totalSizeMB: "0.00" };
+  try {
+    const dir = getCacheDir();
+    const files = (await fs.readdir(dir)).filter((f) => f.endsWith(".png"));
+    let totalSize = 0;
+    for (const f of files) {
+      try { totalSize += (await fs.stat(path.join(dir, f))).size; } catch { /* skip */ }
     }
+    return { totalIcons: files.length, totalSize, totalSizeMB: (totalSize / (1024 * 1024)).toFixed(2) };
+  } catch {
+    return { totalIcons: 0, totalSize: 0, totalSizeMB: "0.00" };
+  }
 }
 
-module.exports = {
-    getIconFromExecutable,
-    getIconForExe,
-    getIconForPid,
-    clearIconCache,
-    getCacheStats,
-};
+module.exports = { getIconFromExecutable, getIconForExe, getIconForPid, clearIconCache, getCacheStats };

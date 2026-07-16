@@ -1,210 +1,191 @@
-const { app, BrowserWindow } = require("electron");
-const db = require("../utils/dbInstance"); // Shared WAL connection
-const path = require("path");
+const { BrowserWindow, Notification } = require("electron");
+const db = require("../utils/dbInstance");
 const os = require("os");
-const { getIconForPid } = require("../utils/iconUtils");
 const { getLocalDateKey } = require("../utils/dateUtils");
+const { initDatabase, getAppLimits, getTodayUsageTotals } = require("../utils/dbUtils");
 
-// Processes to ignore (case-insensitive)
 const EXCLUDED_PROCESSES = new Set([
-  "system idle process",
-  "system",
-  "explorer.exe",
-  "runtimebroker.exe",
-  "searchui.exe",
-  "startmenuexperiencehost.exe",
-  "taskhostw.exe",
-  "shellexperiencehost.exe",
-  "backgroundtaskhost.exe",
-  "applicationframehost.exe",
-  "lockapp.exe",
-  "searchhost.exe",
-  "credential manager ui host",
-  "application frame host",
-  "windows start experience host",
+  "system idle process", "system", "explorer.exe", "runtimebroker.exe",
+  "searchui.exe", "startmenuexperiencehost.exe", "taskhostw.exe",
+  "shellexperiencehost.exe", "backgroundtaskhost.exe", "applicationframehost.exe",
+  "lockapp.exe", "searchhost.exe", "credential manager ui host",
+  "application frame host", "windows start experience host",
 ]);
 
-// Get the system's temporary directory for exclusion check
 const TEMP_DIR = os.tmpdir().toLowerCase();
 
-function initDb() {
-  try {
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS usage (
-        app_name TEXT,
-        exe_path TEXT,
-        date TEXT,
-        duration INTEGER,
-        PRIMARY KEY (app_name, date)
-      )
-    `);
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS pc_active_time (
-        date TEXT PRIMARY KEY,
-        duration INTEGER
-      )
-    `);
-    console.log("[Tracker] Database initialized successfully");
-  } catch (error) {
-    console.error("[Tracker] Failed to initialize database:", error);
-    throw error;
-  }
-}
-
-// Local YYYY-MM-DD date (timezone aware)
-// Now using shared function from dateUtils
-// getLocalDateKey is imported from dateUtils
+// Track which apps have already had their limit notification sent today
+// so we don't spam the user every 10 seconds
+const notifiedToday = new Set();
+let notifiedDay = getLocalDateKey();
 
 async function getActiveWindowInfo() {
   try {
     const activeWin = await import("active-win");
     const result = await activeWin.default();
-
-    if (!result || !result.owner || !result.owner.path) {
-      return { appName: null, exePath: null, pid: null };
-    }
+    if (!result?.owner?.path) return { appName: null, exePath: null };
 
     const procName = result.owner.name.toLowerCase();
     const exePath = result.owner.path;
 
-    if (exePath.toLowerCase().startsWith(TEMP_DIR)) {
-      console.warn(`[Tracker] Ignoring temporary process: ${exePath}`);
-      return { appName: null, exePath: null, pid: null };
-    }
+    if (exePath.toLowerCase().startsWith(TEMP_DIR) || EXCLUDED_PROCESSES.has(procName))
+      return { appName: null, exePath: null };
 
-    if (EXCLUDED_PROCESSES.has(procName)) {
-      return { appName: null, exePath: null, pid: null };
-    }
-
-    const appDisplayName =
-      procName.replace(".exe", "").charAt(0).toUpperCase() +
-      procName.replace(".exe", "").slice(1);
-
-    return { appName: appDisplayName, exePath, pid: result.owner.processId };
-  } catch (error) {
-    console.error("[WARN] Cannot get active window:", error);
-    return { appName: null, exePath: null, pid: null };
+    const appName = procName.charAt(0).toUpperCase() + procName.slice(1);
+    return { appName, exePath };
+  } catch {
+    return { appName: null, exePath: null };
   }
 }
 
-function updateAppUsage(appName, exePath, dateStr, duration) {
-  const stmt = db.prepare(`
-    INSERT INTO usage (app_name, exe_path, date, duration)
-    VALUES (?, ?, ?, ?)
-    ON CONFLICT(app_name, date)
-    DO UPDATE SET duration = duration + excluded.duration
-  `);
-  stmt.run(appName, exePath, dateStr, duration);
+function addUsage(usageMap, appName, exePath, duration) {
+  if (!appName || !exePath || duration <= 0) {
+    return;
+  }
+
+  const key = `${appName}|${exePath}`;
+  usageMap.set(key, (usageMap.get(key) || 0) + duration);
 }
 
-function updatePcScreenTime(dateStr, seconds = 1) {
-  const stmt = db.prepare(`
-    INSERT INTO pc_active_time (date, duration)
-    VALUES (?, ?)
-    ON CONFLICT(date)
-    DO UPDATE SET duration = duration + excluded.duration
-  `);
-  stmt.run(dateStr, seconds);
+function finalizeSession(usageMap, session, endTime) {
+  if (!session?.appName || !session?.exePath) {
+    return 0;
+  }
+
+  const duration = Math.floor((endTime - session.startedAt) / 1000);
+  if (duration <= 0) {
+    return 0;
+  }
+
+  addUsage(usageMap, session.appName, session.exePath, duration);
+  return duration;
 }
+
+// Check app limits and fire notifications for any breached ones
+function checkLimitsAndNotify(today) {
+  try {
+    // Reset notifications on day rollover
+    if (today !== notifiedDay) {
+      notifiedToday.clear();
+      notifiedDay = today;
+    }
+
+    const limits = getAppLimits();
+    if (!limits.length) return;
+
+    const totals = getTodayUsageTotals(today);
+    const totalMap = new Map(totals.map((r) => [r.app_name, r.duration]));
+
+    for (const limit of limits) {
+      const used = totalMap.get(limit.app_name) || 0;
+      const limitSecs = limit.limit_seconds;
+      const notifyKey = `${limit.app_name}_${today}`;
+
+      // Fire at 100% (limit hit)
+      if (used >= limitSecs && !notifiedToday.has(notifyKey)) {
+        notifiedToday.add(notifyKey);
+        const n = new Notification({
+          title: "⏰ App Limit Reached — ZenSlice",
+          body: `You've hit your daily limit for ${limit.app_name}.`,
+          silent: false,
+        });
+        n.show();
+        // Broadcast to renderer so UI can show the blocked state
+        BrowserWindow.getAllWindows().forEach((win) => {
+          try { win.webContents.send("limit-reached", { appName: limit.app_name, limitSeconds: limitSecs, usedSeconds: used }); }
+          catch (_) {}
+        });
+      }
+
+      // Fire a 5-minute warning (limit - 300s)
+      const warnKey = `${limit.app_name}_warn_${today}`;
+      if (used >= limitSecs - 300 && used < limitSecs && !notifiedToday.has(warnKey)) {
+        notifiedToday.add(warnKey);
+        const remaining = Math.ceil((limitSecs - used) / 60);
+        const n = new Notification({
+          title: "⚠️ Approaching Limit — ZenSlice",
+          body: `${limit.app_name}: ${remaining} minute${remaining !== 1 ? "s" : ""} left today.`,
+          silent: true,
+        });
+        n.show();
+      }
+    }
+  } catch (e) {
+    console.error("[Tracker] Limit check error:", e);
+  }
+}
+
+const upsertUsage = db.prepare(`
+  INSERT INTO usage (app_name, exe_path, date, duration) VALUES (?, ?, ?, ?)
+  ON CONFLICT(app_name, date) DO UPDATE SET duration = duration + excluded.duration
+`);
+
+const upsertScreenTime = db.prepare(`
+  INSERT INTO pc_active_time (date, duration) VALUES (?, ?)
+  ON CONFLICT(date) DO UPDATE SET duration = duration + excluded.duration
+`);
 
 function trackUsage() {
-  initDb();
+  initDatabase();
   console.log("[Tracker] Running...");
 
-  const usageTimeMap = new Map();
-  let pcTimeCounter = 0;
-  let lastCommitTime = Date.now();
-
-  let lastAppKey = null;
-  let lastSwitchTime = Date.now();
+  const usageMap = new Map();
+  let pcCounter = 0;
+  let lastCommit = Date.now();
+  let currentSession = null;
   let lastDay = getLocalDateKey();
   let timerId = null;
 
-  const trackLoop = async () => {
+  const loop = async () => {
     try {
       const now = Date.now();
-      const currentDay = getLocalDateKey();
+      const today = getLocalDateKey();
+      const activity = await getActiveWindowInfo();
 
-      // Handle midnight transition
-      if (currentDay !== lastDay) {
-        console.log(`[Tracker] Midnight rollover: ${lastDay} → ${currentDay}`);
-        for (const [key, duration] of usageTimeMap.entries()) {
+      const nextKey = activity.appName && activity.exePath ? `${activity.appName}|${activity.exePath}` : null;
+      const currentKey = currentSession?.appName && currentSession?.exePath ? `${currentSession.appName}|${currentSession.exePath}` : null;
+
+      if (today !== lastDay) {
+        console.log(`[Tracker] Midnight rollover: ${lastDay} → ${today}`);
+        pcCounter += finalizeSession(usageMap, currentSession, now);
+        currentSession = nextKey ? { ...activity, startedAt: now } : null;
+        for (const [key, dur] of usageMap) {
           const [appName, exePath] = key.split("|");
-          updateAppUsage(appName, exePath, lastDay, duration);
+          upsertUsage.run(appName, exePath, lastDay, dur);
         }
-        updatePcScreenTime(lastDay, pcTimeCounter);
-
-        usageTimeMap.clear();
-        pcTimeCounter = 0;
-        lastDay = currentDay;
-        lastSwitchTime = now;
-        lastCommitTime = now;
+        upsertScreenTime.run(lastDay, pcCounter);
+        usageMap.clear(); pcCounter = 0;
+        lastDay = today; lastCommit = now;
+      } else if (nextKey !== currentKey) {
+        pcCounter += finalizeSession(usageMap, currentSession, now);
+        currentSession = nextKey ? { ...activity, startedAt: now } : null;
       }
 
-      const {
-        appName: newApp,
-        exePath: newPath,
-        pid: newPid,
-      } = await getActiveWindowInfo();
-
-      const newKey = newApp && newPath ? `${newApp}|${newPath}` : null;
-
-      if (newKey !== lastAppKey) {
-        if (lastAppKey) {
-          const duration = Math.floor((now - lastSwitchTime) / 1000);
-          const currentCount = usageTimeMap.get(lastAppKey) || 0;
-          usageTimeMap.set(lastAppKey, currentCount + duration);
-          pcTimeCounter += duration;
-        }
-        lastSwitchTime = now;
-        lastAppKey = newKey;
-      }
-
-      // Commit every 10 seconds
-      if (now - lastCommitTime >= 10000) {
-        for (const [key, duration] of usageTimeMap.entries()) {
+      if (now - lastCommit >= 10000) {
+        for (const [key, dur] of usageMap) {
           const [appName, exePath] = key.split("|");
-          updateAppUsage(appName, exePath, currentDay, duration);
+          upsertUsage.run(appName, exePath, today, dur);
         }
-
-        updatePcScreenTime(currentDay, pcTimeCounter);
+        upsertScreenTime.run(today, pcCounter);
         db.pragma("optimize");
-        usageTimeMap.clear();
-        pcTimeCounter = 0;
-        lastCommitTime = now;
+        usageMap.clear(); pcCounter = 0; lastCommit = now;
 
-        // Notify frontend for live updates
-        BrowserWindow.getAllWindows().forEach(win => {
-          try {
-            win.webContents.send("usage-updated");
-          } catch (e) {
-            console.error("[Tracker] Failed to send usage-updated event:", e);
-          }
+        // Check app limits and fire notifications if needed
+        checkLimitsAndNotify(today);
+
+        BrowserWindow.getAllWindows().forEach((win) => {
+          try { win.webContents.send("usage-updated"); }
+          catch (e) { console.error("[Tracker] Failed to notify frontend:", e); }
         });
       }
-    } catch (error) {
-      console.error("[Tracker] Error in tracking loop:", error);
+    } catch (e) {
+      console.error("[Tracker] Error:", e);
     }
-
-    // Recursive setTimeout prevents overlapping executions
-    timerId = setTimeout(trackLoop, 1000);
+    timerId = setTimeout(loop, 1000);
   };
 
-  trackLoop();
-
-  // Return a cleanup function
+  loop();
   return () => clearTimeout(timerId);
 }
 
-function getIconBase64ForPid(pid) {
-  const iconBytes = getIconForPid(pid);
-  if (iconBytes) {
-    return Buffer.from(iconBytes).toString("base64");
-  }
-  return null;
-}
-
-module.exports = {
-  trackUsage,
-  getIconBase64ForPid,
-};
+module.exports = { trackUsage };

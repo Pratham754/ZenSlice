@@ -2,36 +2,30 @@ const { app, BrowserWindow, ipcMain, Tray, Menu, dialog, shell } = require("elec
 const path = require("path");
 const { setAutoStart } = require("./autoStart");
 const { setupAutoUpdate } = require("./updater");
-const fs = require("fs");
 const { trackUsage } = require("./tracker");
-const { getTodayUsageData, getTodayScreenTime, getWeeklyScreenTime, getAllHistoricalData, getScreenTimeByDate, getUsageByDate, exportDataAsExcel } = require("../utils/dbUtils");
+const {
+  getTodayUsageData, getTodayScreenTime, getWeeklyScreenTime,
+  getAllHistoricalData, getScreenTimeByDate, getUsageByDate,
+  exportDataAsExcel, clearAllData,
+  getAppLimits, setAppLimit, removeAppLimit, getKnownApps,
+  getAppCategories, setAppCategory, removeAppCategory,
+} = require("../utils/dbUtils");
 const db = require("../utils/dbInstance");
-const XLSX = require("xlsx");
 
-// Handle squirrel events, which are common for Windows installers
-if (require("electron-squirrel-startup")) {
-  app.quit();
-}
-
-// Check for and handle uninstall command
-if (process.argv.includes("--squirrel-uninstall")) {
-  app.quit();
-}
+if (require("electron-squirrel-startup")) app.quit();
+if (process.argv.includes("--squirrel-uninstall")) app.quit();
 
 const isDev = !app.isPackaged;
+let mainWindow, tray, trackerCleanup;
 
-let mainWindow;
-let tray = null;
-let trackerInterval = null;
+// In-memory focus state (resets on app restart — intentional)
+let focusState = { active: false, endsAt: null, blockedApps: [] };
 
-// Prevent multiple instances of the app
-const gotTheLock = app.requestSingleInstanceLock();
-
-if (!gotTheLock) {
+// Single instance lock
+if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   app.on("second-instance", () => {
-    // Someone tried to run a second instance, we should focus our window.
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
@@ -42,12 +36,8 @@ if (!gotTheLock) {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 700,
-    height: 600,
-    frame: false,
-    resizable: false,
-    maximizable: false,
-    fullscreenable: false,
+    width: 700, height: 600,
+    frame: false, resizable: false, maximizable: false, fullscreenable: false,
     icon: path.join(__dirname, "..", "..", "logo.ico"),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -60,167 +50,124 @@ function createWindow() {
   if (isDev) {
     mainWindow.loadURL("http://localhost:3000");
   } else {
-    mainWindow.loadFile(
-      path.join(__dirname, "..", "..", "build", "index.html")
-    );
-
+    mainWindow.loadFile(path.join(__dirname, "..", "..", "build", "index.html"));
     mainWindow.webContents.on("before-input-event", (event, input) => {
-      if (
-        (input.control && input.shift && input.key.toLowerCase() === "i") ||
-        input.key === "F12"
-      ) {
+      if ((input.control && input.shift && input.key.toLowerCase() === "i") || input.key === "F12")
         event.preventDefault();
-      }
     });
   }
 
-  // Create tray icon
   tray = new Tray(path.join(__dirname, "..", "..", "logo.ico"));
-  const contextMenu = Menu.buildFromTemplate([
-    {
-      label: "Show App",
-      click: () => mainWindow.show(),
-    },
-    {
-      label: "Quit",
-      click: () => {
-        app.quit();
-      },
-    },
-  ]);
   tray.setToolTip("ZenSlice - Digital Wellbeing");
-  tray.setContextMenu(contextMenu);
-  tray.on("click", () => {
-    mainWindow.show();
+  tray.setContextMenu(Menu.buildFromTemplate([
+    { label: "Show App", click: () => mainWindow.show() },
+    { label: "Quit", click: () => app.quit() },
+  ]));
+  tray.on("click", () => mainWindow.show());
+
+  mainWindow.on("close", (e) => {
+    if (!app.isQuitting) { e.preventDefault(); mainWindow.hide(); }
   });
 
-  // Hide to tray instead of quitting
-  mainWindow.on("close", (event) => {
-    if (!app.isQuiting) {
-      event.preventDefault();
-      mainWindow.hide();
-    }
-  });
-
-  // Start background tracker
-  trackerInterval = trackUsage();
+  trackerCleanup = trackUsage();
 }
 
 app.whenReady().then(() => {
-  // Set auto-start to be true whenever the app is launched
   setAutoStart(true);
   createWindow();
-
-  // Setup auto-updater (checks for updates in background)
   setupAutoUpdate(mainWindow);
 });
 
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit();
-});
+app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });
+app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
+app.on("before-quit", () => { app.isQuitting = true; trackerCleanup?.(); });
 
-app.on("activate", () => {
-  if (BrowserWindow.getAllWindows().length === 0) createWindow();
-});
-
-app.on("before-quit", () => {
-  app.isQuiting = true;
-  if (trackerInterval) {
-    trackerInterval(); // Call the cleanup function from recursive setTimeout
-  }
-});
-
-// IPC: Get app version
+// IPC handlers
 ipcMain.handle("get-app-version", () => app.getVersion());
+ipcMain.handle("get-pc-screen-time", () => getTodayScreenTime());
+ipcMain.handle("get-usage-data", () => getTodayUsageData());
+ipcMain.handle("get-weekly-screen-time", () => getWeeklyScreenTime());
+ipcMain.handle("get-all-historical-data", () => getAllHistoricalData());
+ipcMain.handle("get-screen-time-by-date", (_, date) => getScreenTimeByDate(date));
+ipcMain.handle("get-usage-by-date", (_, date) => getUsageByDate(date));
 
-// IPC: Get total screen-on time
-ipcMain.handle("get-pc-screen-time", async () => {
-  return getTodayScreenTime();
-});
-
-// IPC: Get app usage breakdown
-ipcMain.handle("get-usage-data", async () => {
-  return getTodayUsageData();
-});
-
-// IPC: Get app icon from executable
-ipcMain.handle("get-app-icon-by-exe", async (event, exePath) => {
+ipcMain.handle("get-app-icon-by-exe", async (_, exePath) => {
   try {
     const { getIconForExe } = require("../utils/iconUtils");
-    const iconBuffer = await getIconForExe(exePath);
-    return iconBuffer ? iconBuffer.toString("base64") : null;
-  } catch (error) {
-    console.error("Failed to get app icon:", error);
-    return null;
-  }
+    const buf = await getIconForExe(exePath);
+    return buf ? buf.toString("base64") : null;
+  } catch { return null; }
 });
 
-// IPC: Weekly screen time
-ipcMain.handle("get-weekly-screen-time", async () => {
-  return getWeeklyScreenTime();
-});
-
-// IPC: All historical screen time data
-ipcMain.handle("get-all-historical-data", async () => {
-  return getAllHistoricalData();
-});
-
-// IPC: Screen time by specific date
-ipcMain.handle("get-screen-time-by-date", async (event, date) => {
-  return getScreenTimeByDate(date);
-});
-
-// IPC: App usage by specific date
-ipcMain.handle("get-usage-by-date", async (event, date) => {
-  return getUsageByDate(date);
-});
-
-// IPC: Export data as Excel
-ipcMain.handle("export-data-excel", async (event, { startDate, endDate }) => {
+ipcMain.handle("export-data-excel", async (_, { startDate, endDate }) => {
   try {
-    // Ask user where to save file
     const { canceled, filePath } = await dialog.showSaveDialog({
       title: "Export Usage Data",
       defaultPath: `ZenSlice_Usage_${startDate}_to_${endDate}.xlsx`,
       filters: [{ name: "Excel Files", extensions: ["xlsx"] }],
     });
-
     if (canceled || !filePath) return { cancelled: true };
-
-    // Generate Excel and save
     await exportDataAsExcel(startDate, endDate, filePath);
-
     return { success: true, path: filePath };
-  } catch (error) {
-    console.error("Export Excel failed:", error);
-    return { success: false, error: error.message };
+  } catch (e) {
+    return { success: false, error: e.message };
   }
 });
 
-ipcMain.handle("get-earliest-date", async () => {
+ipcMain.handle("get-earliest-date", () => {
   try {
-    const row = db
-      .prepare("SELECT MIN(date) as earliest FROM pc_active_time")
-      .get();
-    return row?.earliest || null;
-  } catch (error) {
-    console.error("[main] Error getting earliest date:", error);
-    return null;
+    return db.prepare("SELECT MIN(date) as earliest FROM pc_active_time").get()?.earliest || null;
+  } catch { return null; }
+});
+
+ipcMain.handle("clear-all-data", () => {
+  try {
+    return { success: clearAllData() };
+  } catch (e) {
+    return { success: false, error: e.message };
   }
 });
 
-ipcMain.on("minimize-app", () => {
-  if (mainWindow) {
-    mainWindow.minimize();
-  }
+ipcMain.on("minimize-app", () => mainWindow?.minimize());
+ipcMain.on("close-app", () => mainWindow?.close());
+ipcMain.on("open-external", (_, url) => shell.openExternal(url));
+
+// ── App Limits ────────────────────────────────────────────────────────────────
+ipcMain.handle("get-app-limits", () => getAppLimits());
+ipcMain.handle("set-app-limit", (_, { appName, limitSeconds }) => ({ success: setAppLimit(appName, limitSeconds) }));
+ipcMain.handle("remove-app-limit", (_, appName) => ({ success: removeAppLimit(appName) }));
+ipcMain.handle("get-known-apps", () => getKnownApps());
+
+// ── App Categories ────────────────────────────────────────────────────────────
+ipcMain.handle("get-app-categories", () => getAppCategories());
+
+ipcMain.handle("set-app-category", (_, { appName, category }) => ({
+  success: setAppCategory(appName, category),
+}));
+
+ipcMain.handle("remove-app-category", (_, appName) => ({
+  success: removeAppCategory(appName),
+}));
+
+// Open executable location in Explorer
+ipcMain.on("show-item-in-folder", (_, exePath) => {
+  if (exePath) shell.showItemInFolder(exePath);
 });
 
-ipcMain.on("close-app", () => {
-  if (mainWindow) {
-    mainWindow.close();
-  }
+// ── Focus Mode ────────────────────────────────────────────────────────────────
+// Focus mode is managed entirely in the renderer via localStorage for the timer,
+// but we expose these IPC hooks for the main process to check focus state
+// and for the renderer to query/update it.
+ipcMain.handle("get-focus-state", () => {
+  // Read from a simple in-memory store — gets reset on app restart which is fine
+  return focusState;
 });
 
-ipcMain.on("open-external", (event, url) => {
-  shell.openExternal(url);
+ipcMain.handle("set-focus-state", (_, state) => {
+  focusState = state; // { active, endsAt, blockedApps }
+  // Broadcast to all windows so multiple renders stay in sync
+  BrowserWindow.getAllWindows().forEach((win) => {
+    try { win.webContents.send("focus-state-changed", focusState); } catch (_) {}
+  });
+  return { success: true };
 });
